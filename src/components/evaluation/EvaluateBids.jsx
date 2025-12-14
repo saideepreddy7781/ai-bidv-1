@@ -1,11 +1,83 @@
-// Bid Evaluation Component
+// Simplified Bid Evaluation Component - Accept/Reject Only
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getTenderById, getBidsByTender, createEvaluation } from '../../services/firebaseService';
-import { generateEvaluationRecommendations } from '../../services/geminiService';
+import { getTenderById, getBidsByTender, acceptBid, rejectBid } from '../../services/firebaseService';
 import Navbar from '../layout/Navbar';
 import LoadingSpinner from '../shared/LoadingSpinner';
+import jsPDF from 'jspdf';
+
+// Function to generate rejection PDF
+const generateRejectionPDF = (bid, rejectionReason, evaluatorName) => {
+    const doc = new jsPDF();
+
+    // Add red header
+    doc.setFillColor(234, 67, 53); // Google Red
+    doc.rect(0, 0, 210, 30, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BID REJECTION NOTICE', 105, 18, { align: 'center' });
+
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+
+    // Certificate body
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('AI Bid Evaluation Platform', 105, 45, { align: 'center' });
+
+    // Border
+    doc.setLineWidth(0.5);
+    doc.rect(15, 55, 180, 120);
+
+    // Content
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Dear Vendor,', 20, 70);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+
+    const content = [
+        { label: 'Company Name:', value: bid.companyName || 'N/A' },
+        { label: 'Vendor:', value: bid.vendorName || 'N/A' },
+        { label: 'Bid ID:', value: bid.id.slice(0, 12) },
+        { label: 'Submission Date:', value: new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString() },
+        { label: 'Evaluation Date:', value: new Date().toLocaleDateString() },
+        { label: 'Evaluated By:', value: evaluatorName || 'N/A' },
+        { label: 'Status:', value: 'REJECTED ✗' }
+    ];
+
+    let yPos = 85;
+    content.forEach(item => {
+        doc.setFont('helvetica', 'bold');
+        doc.text(item.label, 25, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.text(item.value, 80, yPos);
+        yPos += 10;
+    });
+
+    // Rejection reason
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('Rejection Reason:', 20, yPos + 10);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    const splitReason = doc.splitTextToSize(rejectionReason || 'No reason provided', 160);
+    doc.text(splitReason, 25, yPos + 20);
+
+    // Footer
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.text('This is an electronically generated document', 105, 270, { align: 'center' });
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 277, { align: 'center' });
+
+    // Save
+    doc.save(`Rejection_Notice_${bid.id.slice(0, 8)}.pdf`);
+};
 
 const EvaluateBids = () => {
     const { tenderId } = useParams();
@@ -16,14 +88,9 @@ const EvaluateBids = () => {
     const [bids, setBids] = useState([]);
     const [selectedBid, setSelectedBid] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [loadingRecommendations, setLoadingRecommendations] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+    const [processing, setProcessing] = useState(false);
     const [error, setError] = useState('');
-
-    const [scores, setScores] = useState({});
     const [comments, setComments] = useState('');
-    const [recommendation, setRecommendation] = useState('APPROVE');
-    const [aiRecommendation, setAiRecommendation] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -34,16 +101,12 @@ const EvaluateBids = () => {
                 ]);
 
                 setTender(tenderData);
-                setBids(bidsData);
+                // Only show bids that haven't been evaluated yet
+                const unevaluatedBids = bidsData.filter(b => b.status === 'SUBMITTED');
+                setBids(unevaluatedBids);
 
-                if (bidsData.length > 0) {
-                    setSelectedBid(bidsData[0]);
-                    // Initialize scores
-                    const initialScores = {};
-                    tenderData.criteria.forEach(criterion => {
-                        initialScores[criterion.name] = 0;
-                    });
-                    setScores(initialScores);
+                if (unevaluatedBids.length > 0) {
+                    setSelectedBid(unevaluatedBids[0]);
                 }
             } catch (err) {
                 setError('Failed to load data: ' + err.message);
@@ -57,99 +120,76 @@ const EvaluateBids = () => {
 
     const handleBidSelect = (bid) => {
         setSelectedBid(bid);
-        setAiRecommendation(null);
-        // Reset scores
-        const initialScores = {};
-        tender.criteria.forEach(criterion => {
-            initialScores[criterion.name] = 0;
-        });
-        setScores(initialScores);
         setComments('');
-    };
-
-    const handleScoreChange = (criterionName, value) => {
-        setScores({ ...scores, [criterionName]: parseInt(value) || 0 });
-    };
-
-    const calculateTotalScore = () => {
-        return Object.values(scores).reduce((sum, score) => sum + score, 0);
-    };
-
-    const getAiRecommendation = async () => {
-        if (!selectedBid) return;
-
-        setLoadingRecommendations(true);
         setError('');
+    };
+
+    const handleAccept = async () => {
+        if (!comments.trim()) {
+            setError('Please provide evaluation comments before accepting');
+            return;
+        }
+
+        setError('');
+        setProcessing(true);
 
         try {
-            const recommendations = await generateEvaluationRecommendations(
-                selectedBid.bidData,
-                tender.criteria
+            await acceptBid(
+                selectedBid.id,
+                tender.id,
+                userProfile.uid,
+                userProfile.displayName,
+                comments
             );
-            setAiRecommendation(recommendations);
 
-            // Optionally pre-fill scores with AI recommendations
-            if (recommendations.scores) {
-                setScores(recommendations.scores);
-            }
+            alert('Bid accepted! Tender has been marked as COMPLETED.');
+
+            // Redirect to dashboard after acceptance
+            navigate('/evaluator/dashboard');
         } catch (err) {
-            setError('Failed to get AI recommendations: ' + err.message);
+            setError('Failed to accept bid: ' + err.message);
         } finally {
-            setLoadingRecommendations(false);
+            setProcessing(false);
         }
     };
 
-    const handleSubmitEvaluation = async () => {
+    const handleReject = async () => {
+        if (!comments.trim()) {
+            setError('Please provide a rejection reason');
+            return;
+        }
+
         setError('');
-        setSubmitting(true);
+        setProcessing(true);
 
         try {
-            const evaluation = {
-                bidId: selectedBid.id,
-                tenderId: tender.id,
-                evaluatorId: userProfile.uid,
-                evaluatorName: userProfile.displayName,
-                scores: scores,
-                totalScore: calculateTotalScore(),
-                comments: comments,
-                recommendation: recommendation,
-                aiRecommendation: aiRecommendation
-            };
+            await rejectBid(
+                selectedBid.id,
+                userProfile.uid,
+                userProfile.displayName,
+                comments
+            );
 
-            await createEvaluation(evaluation);
-
-            // Update bid status based on recommendation
-            const { updateBid, updateTender } = await import('../../services/firebaseService');
-            const newStatus = recommendation === 'APPROVE' ? 'APPROVED' :
-                recommendation === 'REJECT' ? 'REJECTED' : 'UNDER_REVIEW';
-
-            await updateBid(selectedBid.id, {
-                status: newStatus,
-                evaluationId: evaluation.bidId,
-                evaluatedAt: new Date(),
-                evaluatorName: userProfile.displayName
-            });
-
-            // If bid is approved, close the tender
-            if (recommendation === 'APPROVE') {
-                await updateTender(tender.id, {
-                    status: 'COMPLETED',
-                    winningBidId: selectedBid.id,
-                    completedAt: new Date()
-                });
-            }
+            // Generate rejection PDF
+            generateRejectionPDF(selectedBid, comments, userProfile.displayName);
 
             // Move to next bid or go back to dashboard
             const currentIndex = bids.findIndex(b => b.id === selectedBid.id);
-            if (currentIndex < bids.length - 1) {
-                handleBidSelect(bids[currentIndex + 1]);
+            const remainingBids = bids.filter((_, index) => index !== currentIndex);
+
+            if (remainingBids.length > 0) {
+                setBids(remainingBids);
+                setSelectedBid(remainingBids[0]);
+                setComments('');
+                alert('Bid rejected! Rejection PDF downloaded. Moving to next bid...');
             } else {
+                alert('Bid rejected! Rejection PDF downloaded. No more bids to evaluate.');
                 navigate('/evaluator/dashboard');
             }
         } catch (err) {
-            setError('Failed to submit evaluation: ' + err.message);
+            setError('Failed to reject bid: ' + err.message);
         } finally {
-            setSubmitting(false);
+            setProcessing(false);
         }
     };
 
@@ -163,12 +203,12 @@ const EvaluateBids = () => {
     if (!tender || bids.length === 0) return (
         <>
             <Navbar />
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900">No Bids to Evaluate</h2>
-                    <p className="mt-2 text-gray-600">There are no bids submitted for this tender yet.</p>
-                    <button onClick={() => navigate('/evaluator/dashboard')} className="mt-4 btn-primary">
-                        Back to Dashboard
+            <div className="page-brutal flex items-center justify-center">
+                <div className="card text-center max-w-2xl">
+                    <h2 className="text-3xl font-black text-black mb-4 uppercase">No Bids to Evaluate</h2>
+                    <p className="text-black font-bold mb-6">There are no pending bids for this tender.</p>
+                    <button onClick={() => navigate('/evaluator/dashboard')} className="btn-primary">
+                        BACK TO DASHBOARD
                     </button>
                 </div>
             </div>
@@ -178,16 +218,16 @@ const EvaluateBids = () => {
     return (
         <>
             <Navbar />
-            <div className="min-h-screen bg-gray-50 py-8">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="page-brutal">
+                <div className="container-brutal max-w-7xl">
                     {/* Tender Info */}
-                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">{tender.title}</h1>
-                        <p className="text-gray-600">{tender.description}</p>
+                    <div className="card mb-8">
+                        <h1 className="text-3xl font-black text-black mb-3 uppercase">{tender.title}</h1>
+                        <p className="text-black font-semibold">{tender.description}</p>
                     </div>
 
                     {error && (
-                        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        <div className="alert-error mb-8">
                             {error}
                         </div>
                     )}
@@ -195,29 +235,29 @@ const EvaluateBids = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Bid List */}
                         <div className="lg:col-span-1">
-                            <div className="bg-white rounded-lg shadow-md p-4">
-                                <h2 className="text-lg font-bold text-gray-900 mb-4">
-                                    Bids ({bids.length})
+                            <div className="card">
+                                <h2 className="text-xl font-black text-black mb-4 uppercase">
+                                    Pending Bids ({bids.length})
                                 </h2>
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {bids.map((bid) => (
                                         <button
                                             key={bid.id}
                                             onClick={() => handleBidSelect(bid)}
-                                            className={`w-full text-left p-3 rounded-lg border ${selectedBid?.id === bid.id
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-gray-200 hover:bg-gray-50'
+                                            className={`w-full text-left p-4 border-4 border-black font-bold transition-all duration-100 ${selectedBid?.id === bid.id
+                                                    ? 'bg-google-blue text-white'
+                                                    : 'bg-white hover:bg-gray-50'
                                                 }`}
                                         >
-                                            <div className="font-semibold text-sm">{bid.companyName || 'Unknown Company'}</div>
-                                            <div className="text-xs text-gray-500 mt-1">
+                                            <div className="uppercase text-sm">{bid.companyName || 'Unknown Company'}</div>
+                                            <div className="text-xs mt-1 opacity-90">
                                                 {bid.vendorName} • {new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString()}
                                             </div>
                                             {bid.complianceCheck && (
                                                 <div className="mt-2">
-                                                    <span className={`text-xs px-2 py-1 rounded ${bid.complianceCheck.passed
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-yellow-100 text-yellow-800'
+                                                    <span className={`text-xs px-2 py-1 border-2 border-black font-bold ${bid.complianceCheck.passed
+                                                            ? 'bg-google-green text-white'
+                                                            : 'bg-google-yellow text-black'
                                                         }`}>
                                                         Compliance: {bid.complianceCheck.score}/100
                                                     </span>
@@ -231,53 +271,39 @@ const EvaluateBids = () => {
 
                         {/* Evaluation Form */}
                         <div className="lg:col-span-2">
-                            <div className="bg-white rounded-lg shadow-md p-6">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900">
-                                            Evaluate: {selectedBid?.companyName}
-                                        </h2>
-                                        <p className="text-sm text-gray-500 mt-1">
-                                            Submitted by {selectedBid?.vendorName}
-                                        </p>
-                                    </div>
-                                    <button
-                                        onClick={getAiRecommendation}
-                                        disabled={loadingRecommendations}
-                                        className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-lg disabled:opacity-50"
-                                    >
-                                        {loadingRecommendations ? 'Loading...' : '🤖 AI Recommend'}
-                                    </button>
-                                </div>
+                            <div className="card">
+                                <h2 className="text-2xl font-black text-black mb-6 uppercase">
+                                    Evaluate: {selectedBid?.companyName}
+                                </h2>
 
                                 {/* Bid Details */}
-                                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                                    <h3 className="font-semibold text-gray-900 mb-2">Proposal Summary</h3>
-                                    <p className="text-sm text-gray-700 mb-3">{selectedBid?.bidData?.proposalText}</p>
+                                <div className="mb-6 p-6 border-4 border-black bg-gray-50">
+                                    <h3 className="font-black text-black mb-3 uppercase text-sm">Proposal Summary</h3>
+                                    <p className="text-black font-semibold mb-4">{selectedBid?.bidData?.proposalText}</p>
 
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div className="grid grid-cols-2 gap-4">
                                         {selectedBid?.bidData?.proposedCost && (
                                             <div>
-                                                <span className="text-gray-500">Cost:</span>
-                                                <span className="ml-2 font-semibold">{selectedBid.bidData.proposedCost}</span>
+                                                <span className="text-black font-bold text-sm uppercase">Cost:</span>
+                                                <span className="ml-2 font-black text-google-blue">{selectedBid.bidData.proposedCost}</span>
                                             </div>
                                         )}
                                         {selectedBid?.bidData?.timeline && (
                                             <div>
-                                                <span className="text-gray-500">Timeline:</span>
-                                                <span className="ml-2 font-semibold">{selectedBid.bidData.timeline}</span>
+                                                <span className="text-black font-bold text-sm uppercase">Timeline:</span>
+                                                <span className="ml-2 font-black">{selectedBid.bidData.timeline}</span>
                                             </div>
                                         )}
                                         {selectedBid?.bidData?.experience && (
                                             <div>
-                                                <span className="text-gray-500">Experience:</span>
-                                                <span className="ml-2 font-semibold">{selectedBid.bidData.experience}</span>
+                                                <span className="text-black font-bold text-sm uppercase">Experience:</span>
+                                                <span className="ml-2 font-black">{selectedBid.bidData.experience}</span>
                                             </div>
                                         )}
                                         {selectedBid?.bidData?.teamSize && (
                                             <div>
-                                                <span className="text-gray-500">Team Size:</span>
-                                                <span className="ml-2 font-semibold">{selectedBid.bidData.teamSize}</span>
+                                                <span className="text-black font-bold text-sm uppercase">Team:</span>
+                                                <span className="ml-2 font-black">{selectedBid.bidData.teamSize}</span>
                                             </div>
                                         )}
                                     </div>
@@ -285,122 +311,66 @@ const EvaluateBids = () => {
 
                                 {/* AI Analysis Results */}
                                 {selectedBid?.aiAnalysis && (
-                                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                        <h3 className="font-semibold text-blue-900 mb-2">AI Analysis</h3>
-                                        <p className="text-sm text-blue-800">{selectedBid.aiAnalysis.summary}</p>
+                                    <div className="mb-6 p-6 border-4 border-black bg-google-blue text-white">
+                                        <h3 className="font-black mb-3 uppercase text-sm">AI Analysis</h3>
+                                        <p className="font-semibold">{selectedBid.aiAnalysis.summary}</p>
                                     </div>
                                 )}
 
-                                {/* AI Recommendations */}
-                                {aiRecommendation && (
-                                    <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                                        <h3 className="font-semibold text-purple-900 mb-3">AI Evaluation Recommendations</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-purple-800">Total Score:</span>
-                                                <span className="font-bold text-purple-900">{aiRecommendation.totalScore}/100</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-purple-800">Confidence:</span>
-                                                <span className="font-semibold text-purple-900">
-                                                    {(aiRecommendation.confidence * 100).toFixed(0)}%
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-purple-800">Recommendation:</span>
-                                                <span className={`font-semibold ${aiRecommendation.overall_recommendation === 'APPROVE' ? 'text-green-700' :
-                                                    aiRecommendation.overall_recommendation === 'REJECT' ? 'text-red-700' :
-                                                        'text-yellow-700'
-                                                    }`}>
-                                                    {aiRecommendation.overall_recommendation}
-                                                </span>
-                                            </div>
+                                {/* Compliance Check */}
+                                {selectedBid?.complianceCheck && (
+                                    <div className={`mb-6 p-6 border-4 border-black ${selectedBid.complianceCheck.passed
+                                            ? 'bg-google-green text-white'
+                                            : 'bg-google-yellow text-black'
+                                        }`}>
+                                        <h3 className="font-black mb-3 uppercase text-sm">Compliance Check</h3>
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-black text-2xl">
+                                                {selectedBid.complianceCheck.passed ? '✅ PASSED' : '⚠️ ISSUES FOUND'}
+                                            </span>
+                                            <span className="font-black text-2xl">
+                                                {selectedBid.complianceCheck.score}/100
+                                            </span>
                                         </div>
                                     </div>
                                 )}
 
-                                {/* Scoring */}
-                                <div className="mb-6">
-                                    <h3 className="font-semibold text-gray-900 mb-4">Evaluation Scores</h3>
-                                    <div className="space-y-4">
-                                        {tender.criteria.map((criterion) => (
-                                            <div key={criterion.name} className="border border-gray-200 rounded-lg p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <div className="font-semibold text-gray-900">{criterion.name}</div>
-                                                        <div className="text-sm text-gray-500">{criterion.description}</div>
-                                                    </div>
-                                                    <div className="text-sm text-gray-500">Max: {criterion.weight}</div>
-                                                </div>
-                                                <div className="flex items-center gap-4 mt-3">
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max={criterion.weight}
-                                                        value={scores[criterion.name] || 0}
-                                                        onChange={(e) => handleScoreChange(criterion.name, e.target.value)}
-                                                        className="flex-1"
-                                                    />
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max={criterion.weight}
-                                                        value={scores[criterion.name] || 0}
-                                                        onChange={(e) => handleScoreChange(criterion.name, e.target.value)}
-                                                        className="w-20 px-3 py-2 border border-gray-300 rounded-lg"
-                                                    />
-                                                </div>
-                                                {aiRecommendation?.reasoning?.[criterion.name] && (
-                                                    <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                                                        AI: {aiRecommendation.reasoning[criterion.name]}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
+                                <div className="divider"></div>
 
-                                    <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-                                        <div className="flex justify-between text-lg font-bold">
-                                            <span>Total Score:</span>
-                                            <span className="text-blue-600">{calculateTotalScore()}/100</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Comments */}
-                                <div className="mb-6">
-                                    <label className="label">Evaluator Comments</label>
+                                {/* Evaluation Comments */}
+                                <div className="mb-8">
+                                    <label className="label">Evaluation Comments / Rejection Reason *</label>
                                     <textarea
                                         value={comments}
                                         onChange={(e) => setComments(e.target.value)}
-                                        rows={4}
+                                        rows={5}
                                         className="input-field"
-                                        placeholder="Add your detailed feedback and observations..."
+                                        placeholder="Provide detailed feedback. If rejecting, explain the reason clearly..."
+                                        required
                                     />
                                 </div>
 
-                                {/* Recommendation */}
-                                <div className="mb-6">
-                                    <label className="label">Final Recommendation</label>
-                                    <select
-                                        value={recommendation}
-                                        onChange={(e) => setRecommendation(e.target.value)}
-                                        className="input-field"
+                                {/* Action Buttons */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        onClick={handleReject}
+                                        disabled={processing || !comments.trim()}
+                                        className="btn-danger disabled:opacity-50"
                                     >
-                                        <option value="APPROVE">Approve</option>
-                                        <option value="REJECT">Reject</option>
-                                        <option value="REQUEST_CLARIFICATION">Request Clarification</option>
-                                    </select>
+                                        {processing ? 'PROCESSING...' : '✗ REJECT BID'}
+                                    </button>
+                                    <button
+                                        onClick={handleAccept}
+                                        disabled={processing || !comments.trim()}
+                                        className="btn-success disabled:opacity-50"
+                                    >
+                                        {processing ? 'PROCESSING...' : '✓ ACCEPT BID'}
+                                    </button>
                                 </div>
 
-                                {/* Submit Button */}
-                                <button
-                                    onClick={handleSubmitEvaluation}
-                                    disabled={submitting}
-                                    className="w-full btn-primary"
-                                >
-                                    {submitting ? 'Submitting...' : 'Submit Evaluation'}
-                                </button>
+                                <div className="mt-4 p-4 border-4 border-black bg-google-yellow text-black font-bold text-sm text-center">
+                                    ⚠️ Accept will CLOSE this tender. Reject will keep it OPEN for other vendors.
+                                </div>
                             </div>
                         </div>
                     </div>

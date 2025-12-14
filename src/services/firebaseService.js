@@ -394,6 +394,58 @@ export const updateEvaluation = async (evaluationId, updates) => {
     }
 };
 
+/**
+ * Accept a bid - simplified evaluation
+ * Updates bid status to APPROVED and closes the tender
+ */
+export const acceptBid = async (bidId, tenderId, evaluatorId, evaluatorName, comments) => {
+    try {
+        // Update bid status to APPROVED
+        await updateDoc(doc(db, COLLECTIONS.BIDS, bidId), {
+            status: 'APPROVED',
+            evaluatedAt: serverTimestamp(),
+            evaluatorId: evaluatorId,
+            evaluatorName: evaluatorName,
+            evaluationComments: comments
+        });
+
+        // Close the tender (mark as COMPLETED)
+        await updateDoc(doc(db, COLLECTIONS.TENDERS, tenderId), {
+            status: 'COMPLETED',
+            winningBidId: bidId,
+            completedAt: serverTimestamp()
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error accepting bid:', error);
+        throw error;
+    }
+};
+
+/**
+ * Reject a bid - simplified evaluation
+ * Updates bid status to REJECTED, tender remains OPEN
+ */
+export const rejectBid = async (bidId, evaluatorId, evaluatorName, comments) => {
+    try {
+        // Update bid status to REJECTED
+        await updateDoc(doc(db, COLLECTIONS.BIDS, bidId), {
+            status: 'REJECTED',
+            evaluatedAt: serverTimestamp(),
+            evaluatorId: evaluatorId,
+            evaluatorName: evaluatorName,
+            evaluationComments: comments,
+            rejectionReason: comments
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error rejecting bid:', error);
+        throw error;
+    }
+};
+
 // ==================== Storage Services ====================
 
 /**
@@ -507,6 +559,8 @@ export default {
     getBidsByVendor,
     getBidById,
     updateBid,
+    acceptBid,
+    rejectBid,
     // Evaluations
     createEvaluation,
     getEvaluationsByBid,
