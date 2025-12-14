@@ -83,134 +83,142 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-12">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        Create Account
-                    </h1>
-                    <p className="text-gray-600">Join the AI Bid Evaluation Platform</p>
-                </div>
-
-                {error && (
-                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="label">Full Name</label>
-                        <input
-                            type="text"
-                            name="displayName"
-                            value={formData.displayName}
-                            onChange={handleChange}
-                            className="input-field"
-                            placeholder="John Doe"
-                            required
-                        />
+        <div className="page-brutal" style={{ backgroundColor: '#F5F5F5' }}>
+            <div className="max-w-md w-full mx-auto px-4">
+                <div className="card">
+                    <div className="text-center mb-8">
+                        <div className="flex items-center justify-center mb-4">
+                            <span className="text-4xl font-black" style={{ color: '#4285F4' }}>AI</span>
+                            <span className="text-4xl font-black mx-1" style={{ color: '#EA4335' }}>Bid</span>
+                            <span className="text-4xl font-black" style={{ color: '#FBBC04' }}>Eval</span>
+                            <span className="text-4xl font-black ml-1" style={{ color: '#34A853' }}>✓</span>
+                        </div>
+                        <h1 className="text-3xl font-black text-black mb-2 uppercase tracking-tight">
+                            Create Account
+                        </h1>
+                        <p className="text-black font-semibold">Join the platform</p>
                     </div>
 
-                    <div>
-                        <label className="label">Email Address</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="input-field"
-                            placeholder="you@example.com"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="label">Role</label>
-                        <select
-                            name="role"
-                            value={formData.role}
-                            onChange={handleChange}
-                            className="input-field"
-                            required
-                        >
-                            <option value={USER_ROLES.VENDOR}>Vendor</option>
-                            <option value={USER_ROLES.PROCUREMENT_OFFICER}>Procurement Officer</option>
-                            <option value={USER_ROLES.EVALUATOR}>Evaluator</option>
-                            <option value={USER_ROLES.ADMIN}>Admin</option>
-                        </select>
-                    </div>
-
-                    {formData.role === 'VENDOR' && (
-                        <>
-                            <div>
-                                <label className="label">Company Name</label>
-                                <input
-                                    type="text"
-                                    name="companyName"
-                                    value={formData.companyName}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                    placeholder="ABC Corporation"
-                                    required
-                                />
-                            </div>
-
-                            <div>
-                                <label className="label">Registration Number (Optional)</label>
-                                <input
-                                    type="text"
-                                    name="registrationNumber"
-                                    value={formData.registrationNumber}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                    placeholder="REG123456"
-                                />
-                            </div>
-                        </>
+                    {error && (
+                        <div className="alert-error">
+                            {error}
+                        </div>
                     )}
 
-                    <div>
-                        <label className="label">Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            className="input-field"
-                            placeholder="••••••••"
-                            required
-                        />
-                    </div>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="label">Full Name</label>
+                            <input
+                                type="text"
+                                name="displayName"
+                                value={formData.displayName}
+                                onChange={handleChange}
+                                className="input-field"
+                                placeholder="John Doe"
+                                required
+                            />
+                        </div>
 
-                    <div>
-                        <label className="label">Confirm Password</label>
-                        <input
-                            type="password"
-                            name="confirmPassword"
-                            value={formData.confirmPassword}
-                            onChange={handleChange}
-                            className="input-field"
-                            placeholder="••••••••"
-                            required
-                        />
-                    </div>
+                        <div>
+                            <label className="label">Email Address</label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                className="input-field"
+                                placeholder="you@example.com"
+                                required
+                            />
+                        </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-                    >
-                        {loading ? 'Creating Account...' : 'Register'}
-                    </button>
-                </form>
+                        <div>
+                            <label className="label">Role</label>
+                            <select
+                                name="role"
+                                value={formData.role}
+                                onChange={handleChange}
+                                className="input-field"
+                                required
+                            >
+                                <option value={USER_ROLES.VENDOR}>Vendor</option>
+                                <option value={USER_ROLES.PROCUREMENT_OFFICER}>Procurement Officer</option>
+                                <option value={USER_ROLES.EVALUATOR}>Evaluator</option>
+                                <option value={USER_ROLES.ADMIN}>Admin</option>
+                            </select>
+                        </div>
 
-                <p className="mt-6 text-center text-sm text-gray-600">
-                    Already have an account?{' '}
-                    <Link to="/login" className="text-blue-600 hover:text-blue-700 font-semibold">
-                        Login here
-                    </Link>
-                </p>
+                        {formData.role === 'VENDOR' && (
+                            <>
+                                <div>
+                                    <label className="label">Company Name</label>
+                                    <input
+                                        type="text"
+                                        name="companyName"
+                                        value={formData.companyName}
+                                        onChange={handleChange}
+                                        className="input-field"
+                                        placeholder="ABC Corporation"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="label">Registration Number (Optional)</label>
+                                    <input
+                                        type="text"
+                                        name="registrationNumber"
+                                        value={formData.registrationNumber}
+                                        onChange={handleChange}
+                                        className="input-field"
+                                        placeholder="REG123456"
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        <div>
+                            <label className="label">Password</label>
+                            <input
+                                type="password"
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                className="input-field"
+                                placeholder="••••••••"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="label">Confirm Password</label>
+                            <input
+                                type="password"
+                                name="confirmPassword"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                                className="input-field"
+                                placeholder="••••••••"
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+                        >
+                            {loading ? 'CREATING ACCOUNT...' : 'REGISTER'}
+                        </button>
+                    </form>
+
+                    <p className="mt-8 text-center text-sm font-semibold text-black">
+                        Already have an account?{' '}
+                        <Link to="/login" className="link-brutal" style={{ color: '#4285F4' }}>
+                            Login here
+                        </Link>
+                    </p>
+                </div>
             </div>
         </div>
     );

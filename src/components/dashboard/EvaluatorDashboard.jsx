@@ -1,4 +1,4 @@
-// Evaluator Dashboard
+// Evaluator Dashboard - Neobrutalism Style
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllTenders, getEvaluationsByTender, getBidById } from '../../services/firebaseService';
@@ -63,34 +63,34 @@ const EvaluatorDashboard = () => {
     return (
         <>
             <Navbar />
-            <div className="min-h-screen bg-gray-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <div className="page-brutal">
+                <div className="container-brutal">
+                    <div className="card mb-8">
+                        <h1 className="text-4xl font-black text-black mb-2 uppercase tracking-tight">
                             Evaluator Dashboard
                         </h1>
-                        <p className="text-gray-600">Review and evaluate bid submissions with AI-powered insights</p>
+                        <p className="text-black font-bold">Review and evaluate bid submissions with AI-powered insights</p>
                     </div>
 
                     {/* Stats */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <p className="text-gray-500 text-sm">Total Tenders</p>
-                            <p className="text-3xl font-bold text-blue-600">{tenders.length}</p>
+                        <div className="stat-card-blue">
+                            <p className="text-sm font-bold mb-2 uppercase">Total Tenders</p>
+                            <p className="text-5xl font-black">{tenders.length}</p>
                         </div>
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <p className="text-gray-500 text-sm">My Evaluations</p>
-                            <p className="text-3xl font-bold text-green-600">{myEvaluations.length}</p>
+                        <div className="stat-card-green">
+                            <p className="text-sm font-bold mb-2 uppercase">My Evaluations</p>
+                            <p className="text-5xl font-black">{myEvaluations.length}</p>
                         </div>
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <p className="text-gray-500 text-sm">Approved</p>
-                            <p className="text-3xl font-bold text-green-600">
+                        <div className="stat-card-green">
+                            <p className="text-sm font-bold mb-2 uppercase">Approved</p>
+                            <p className="text-5xl font-black">
                                 {myEvaluations.filter(e => e.recommendation === 'APPROVE').length}
                             </p>
                         </div>
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <p className="text-gray-500 text-sm">Rejected</p>
-                            <p className="text-3xl font-bold text-red-600">
+                        <div className="stat-card-red">
+                            <p className="text-sm font-bold mb-2 uppercase">Rejected</p>
+                            <p className="text-5xl font-black">
                                 {myEvaluations.filter(e => e.recommendation === 'REJECT').length}
                             </p>
                         </div>
@@ -98,38 +98,36 @@ const EvaluatorDashboard = () => {
 
                     {/* My Evaluations Section */}
                     {myEvaluations.length > 0 && (
-                        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">My Recent Evaluations</h2>
+                        <div className="card mb-8">
+                            <h2 className="text-3xl font-black text-black mb-6 uppercase">My Recent Evaluations</h2>
                             <div className="space-y-4">
                                 {myEvaluations.slice(0, 5).map((evaluation) => (
-                                    <div key={evaluation.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                        <div className="flex justify-between items-start mb-2">
+                                    <div key={evaluation.id} className="border-4 border-black p-6">
+                                        <div className="flex justify-between items-start mb-3">
                                             <div>
-                                                <h3 className="font-semibold text-gray-900">{evaluation.tender?.title}</h3>
-                                                <p className="text-sm text-gray-600 mt-1">
+                                                <h3 className="font-black text-xl text-black">{evaluation.tender?.title}</h3>
+                                                <p className="text-black font-semibold mt-2">
                                                     Bid by: {evaluation.bid?.companyName || evaluation.bid?.vendorName || 'Unknown'}
                                                 </p>
                                             </div>
-                                            <span className={`px-3 py-1 rounded text-sm font-semibold ${evaluation.recommendation === 'APPROVE' ? 'bg-green-100 text-green-800' :
-                                                evaluation.recommendation === 'REJECT' ? 'bg-red-100 text-red-800' :
-                                                    'bg-yellow-100 text-yellow-800'
+                                            <span className={`px-4 py-2 border-4 border-black font-bold uppercase ${evaluation.recommendation === 'APPROVE' ? 'bg-google-green text-white' :
+                                                    evaluation.recommendation === 'REJECT' ? 'bg-google-red text-white' :
+                                                        'bg-google-yellow text-black'
                                                 }`}>
                                                 {evaluation.recommendation}
                                             </span>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4 text-sm mt-3">
-                                            <div>
-                                                <span className="text-gray-500">Total Score:</span>
-                                                <span className="ml-2 font-semibold text-blue-600">{evaluation.totalScore}/100</span>
+                                        <div className="grid grid-cols-2 gap-4 mt-4">
+                                            <div className="font-bold text-black">
+                                                Total Score: <span className="text-google-blue">{evaluation.totalScore}/100</span>
                                             </div>
-                                            <div>
-                                                <span className="text-gray-500">Evaluated:</span>
-                                                <span className="ml-2">{new Date(evaluation.evaluatedAt?.seconds * 1000).toLocaleDateString()}</span>
+                                            <div className="font-bold text-black">
+                                                Evaluated: {new Date(evaluation.evaluatedAt?.seconds * 1000).toLocaleDateString()}
                                             </div>
                                         </div>
                                         {evaluation.comments && (
-                                            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                                <p className="text-sm text-gray-700">{evaluation.comments}</p>
+                                            <div className="mt-4 p-4 bg-gray-100 border-4 border-black">
+                                                <p className="font-semibold text-black">{evaluation.comments}</p>
                                             </div>
                                         )}
                                     </div>
@@ -139,35 +137,35 @@ const EvaluatorDashboard = () => {
                     )}
 
                     {/* Tenders to Evaluate */}
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Tenders to Evaluate</h2>
+                    <div className="card">
+                        <h2 className="text-3xl font-black text-black mb-6 uppercase">Tenders to Evaluate</h2>
 
                         {tenders.length === 0 ? (
-                            <p className="text-gray-500 text-center py-8">No tenders available for evaluation</p>
+                            <p className="text-black font-bold text-center py-8">No tenders available for evaluation</p>
                         ) : (
                             <div className="space-y-4">
                                 {tenders.map((tender) => (
-                                    <div key={tender.id} className="border border-gray-200 rounded-lg p-4">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="font-semibold text-lg text-gray-900">{tender.title}</h3>
-                                            <span className={`px-3 py-1 rounded text-sm ${tender.status === 'OPEN' ? 'bg-green-100 text-green-800' :
-                                                tender.status === 'EVALUATING' ? 'bg-yellow-100 text-yellow-800' :
-                                                    tender.status === 'CLOSED' ? 'bg-gray-100 text-gray-800' :
-                                                        'bg-blue-100 text-blue-800'
+                                    <div key={tender.id} className="border-4 border-black p-6">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <h3 className="font-black text-2xl text-black">{tender.title}</h3>
+                                            <span className={`px-4 py-2 border-4 border-black font-bold uppercase ${tender.status === 'OPEN' ? 'bg-google-green text-white' :
+                                                    tender.status === 'EVALUATING' ? 'bg-google-yellow text-black' :
+                                                        tender.status === 'CLOSED' ? 'bg-gray-400 text-white' :
+                                                            'bg-google-blue text-white'
                                                 }`}>
                                                 {tender.status}
                                             </span>
                                         </div>
-                                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{tender.description}</p>
+                                        <p className="text-black font-semibold mb-4 line-clamp-2">{tender.description}</p>
                                         <div className="flex justify-between items-center">
-                                            <div className="text-sm text-gray-500">
+                                            <div className="font-bold text-black">
                                                 Deadline: {new Date(tender.deadline?.seconds * 1000).toLocaleDateString()}
                                             </div>
                                             <Link
                                                 to={`/evaluator/evaluate/${tender.id}`}
-                                                className="btn-primary text-sm"
+                                                className="btn-primary"
                                             >
-                                                Evaluate Bids
+                                                EVALUATE BIDS
                                             </Link>
                                         </div>
                                     </div>

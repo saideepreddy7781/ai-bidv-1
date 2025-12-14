@@ -152,15 +152,15 @@ CERTIFICATIONS: ${bidData.certifications}
     if (error && !tender) return (
         <>
             <Navbar />
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold text-red-600">Tender Unavailable</h2>
-                    <p className="mt-2 text-gray-600">{error}</p>
+            <div className="page-brutal flex items-center justify-center">
+                <div className="card text-center max-w-2xl">
+                    <h2 className="text-3xl font-black text-google-red mb-4 uppercase">Tender Unavailable</h2>
+                    <p className="text-black font-bold mb-6">{error}</p>
                     <button
                         onClick={() => navigate('/vendor/dashboard')}
-                        className="mt-4 btn-primary"
+                        className="btn-primary"
                     >
-                        Back to Dashboard
+                        BACK TO DASHBOARD
                     </button>
                 </div>
             </div>
@@ -170,27 +170,29 @@ CERTIFICATIONS: ${bidData.certifications}
     return (
         <>
             <Navbar />
-            <div className="min-h-screen bg-gray-50 py-8">
-                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="page-brutal">
+                <div className="container-brutal max-w-5xl">
                     {/* Tender Info */}
-                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-2">{tender.title}</h1>
-                        <p className="text-gray-600 mb-4">{tender.description}</p>
-                        <div className="flex gap-4 text-sm text-gray-500">
-                            <span>Deadline: {new Date(tender.deadline?.seconds * 1000).toLocaleDateString()}</span>
-                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded">Open</span>
+                    <div className="card mb-8">
+                        <h1 className="text-3xl font-black text-black mb-3 uppercase">{tender.title}</h1>
+                        <p className="text-black font-semibold mb-4">{tender.description}</p>
+                        <div className="flex gap-6">
+                            <span className="font-bold text-black">
+                                Deadline: {new Date(tender.deadline?.seconds * 1000).toLocaleDateString()}
+                            </span>
+                            <span className="badge-green">OPEN</span>
                         </div>
                     </div>
 
                     {error && (
-                        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        <div className="alert-error mb-8">
                             {error}
                         </div>
                     )}
 
                     {/* Bid Form */}
-                    <div className="bg-white rounded-lg shadow-md p-8">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Submit Your Bid</h2>
+                    <div className="card">
+                        <h2 className="text-3xl font-black text-black mb-8 uppercase">Submit Your Bid</h2>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Proposal Text */}
@@ -205,7 +207,7 @@ CERTIFICATIONS: ${bidData.certifications}
                                     placeholder="Provide a comprehensive overview of your proposal..."
                                     required
                                 />
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-2 text-sm font-semibold text-black">
                                     This will be analyzed by AI to extract key information
                                 </p>
                             </div>
@@ -291,42 +293,30 @@ CERTIFICATIONS: ${bidData.certifications}
                             </div>
 
                             {/* AI Analysis Button */}
-                            <div className="border-t pt-6">
-                                <button
-                                    type="button"
-                                    onClick={handleAnalyze}
-                                    disabled={analyzing || !bidData.proposalText}
-                                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
-                                >
-                                    {analyzing ? (
-                                        <span className="flex items-center justify-center gap-2">
-                                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                            </svg>
-                                            Analyzing with AI...
-                                        </span>
-                                    ) : (
-                                        '🤖 Analyze with AI'
-                                    )}
-                                </button>
-                            </div>
+                            <div className="divider"></div>
+                            <button
+                                type="button"
+                                onClick={handleAnalyze}
+                                disabled={analyzing || !bidData.proposalText}
+                                className="w-full btn-warning disabled:opacity-50"
+                            >
+                                {analyzing ? '🤖 ANALYZING WITH AI...' : '🤖 ANALYZE WITH AI'}
+                            </button>
 
                             {/* AI Analysis Results */}
                             {aiAnalysis && (
-                                <div className="border-t pt-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Analysis Results</h3>
-
+                                <div className="border-4 border-black p-6 bg-google-blue text-white">
+                                    <h3 className="text-2xl font-black mb-4 uppercase">AI Analysis Results</h3>
                                     <div className="space-y-4">
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                            <h4 className="font-semibold text-blue-900 mb-2">Summary</h4>
-                                            <p className="text-blue-800 text-sm">{aiAnalysis.summary}</p>
+                                        <div>
+                                            <h4 className="font-black mb-2">Summary</h4>
+                                            <p className="font-semibold">{aiAnalysis.summary}</p>
                                         </div>
 
                                         {aiAnalysis.keyFeatures && aiAnalysis.keyFeatures.length > 0 && (
-                                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                                <h4 className="font-semibold text-green-900 mb-2">Key Features</h4>
-                                                <ul className="list-disc list-inside text-green-800 text-sm space-y-1">
+                                            <div>
+                                                <h4 className="font-black mb-2">Key Features</h4>
+                                                <ul className="list-disc list-inside font-semibold space-y-1">
                                                     {aiAnalysis.keyFeatures.map((feature, idx) => (
                                                         <li key={idx}>{feature}</li>
                                                     ))}
@@ -335,9 +325,9 @@ CERTIFICATIONS: ${bidData.certifications}
                                         )}
 
                                         {aiAnalysis.strengths && aiAnalysis.strengths.length > 0 && (
-                                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                                <h4 className="font-semibold text-purple-900 mb-2">Strengths</h4>
-                                                <ul className="list-disc list-inside text-purple-800 text-sm space-y-1">
+                                            <div>
+                                                <h4 className="font-black mb-2">Strengths</h4>
+                                                <ul className="list-disc list-inside font-semibold space-y-1">
                                                     {aiAnalysis.strengths.map((strength, idx) => (
                                                         <li key={idx}>{strength}</li>
                                                     ))}
@@ -350,60 +340,58 @@ CERTIFICATIONS: ${bidData.certifications}
 
                             {/* Compliance Check */}
                             {complianceCheck && (
-                                <div className="border-t pt-6">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Compliance Check</h3>
-
-                                    <div className={`border rounded-lg p-4 ${complianceCheck.passed ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'
-                                        }`}>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className={`text-2xl ${complianceCheck.passed ? 'text-green-600' : 'text-yellow-600'}`}>
-                                                {complianceCheck.passed ? '✅' : '⚠️'}
-                                            </span>
-                                            <span className={`font-semibold ${complianceCheck.passed ? 'text-green-900' : 'text-yellow-900'}`}>
-                                                {complianceCheck.passed ? 'Compliance Check Passed' : 'Compliance Issues Found'}
-                                            </span>
-                                            <span className={`ml-auto text-sm font-semibold ${complianceCheck.passed ? 'text-green-700' : 'text-yellow-700'}`}>
-                                                Score: {complianceCheck.score}/100
-                                            </span>
-                                        </div>
-
-                                        {complianceCheck.issues && complianceCheck.issues.length > 0 && (
-                                            <div className="mt-3">
-                                                <p className="text-sm font-semibold text-yellow-900 mb-1">Issues:</p>
-                                                <ul className="list-disc list-inside text-yellow-800 text-sm space-y-1">
-                                                    {complianceCheck.issues.map((issue, idx) => (
-                                                        <li key={idx}>{issue}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-
-                                        {complianceCheck.recommendations && (
-                                            <div className="mt-3">
-                                                <p className="text-sm font-semibold text-gray-700 mb-1">Recommendations:</p>
-                                                <p className="text-sm text-gray-600">{complianceCheck.recommendations}</p>
-                                            </div>
-                                        )}
+                                <div className={`border-4 border-black p-6 ${complianceCheck.passed ? 'bg-google-green text-white' : 'bg-google-yellow text-black'
+                                    }`}>
+                                    <h3 className="text-2xl font-black mb-4 uppercase">Compliance Check</h3>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <span className="text-4xl">
+                                            {complianceCheck.passed ? '✅' : '⚠️'}
+                                        </span>
+                                        <span className="font-black text-xl">
+                                            {complianceCheck.passed ? 'COMPLIANCE CHECK PASSED' : 'COMPLIANCE ISSUES FOUND'}
+                                        </span>
+                                        <span className="ml-auto text-xl font-black">
+                                            Score: {complianceCheck.score}/100
+                                        </span>
                                     </div>
+
+                                    {complianceCheck.issues && complianceCheck.issues.length > 0 && (
+                                        <div>
+                                            <p className="font-black mb-2">Issues:</p>
+                                            <ul className="list-disc list-inside font-semibold space-y-1">
+                                                {complianceCheck.issues.map((issue, idx) => (
+                                                    <li key={idx}>{issue}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {complianceCheck.recommendations && (
+                                        <div className="mt-4">
+                                            <p className="font-black mb-2">Recommendations:</p>
+                                            <p className="font-semibold">{complianceCheck.recommendations}</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             {/* Submit Buttons */}
-                            <div className="flex gap-4 pt-6 border-t">
+                            <div className="divider"></div>
+                            <div className="flex gap-4 pt-6">
                                 <button
                                     type="button"
                                     onClick={() => navigate('/vendor/dashboard')}
                                     className="btn-secondary flex-1"
                                     disabled={submitting}
                                 >
-                                    Cancel
+                                    CANCEL
                                 </button>
                                 <button
                                     type="submit"
                                     className="btn-primary flex-1"
                                     disabled={submitting}
                                 >
-                                    {submitting ? 'Submitting...' : 'Submit Bid'}
+                                    {submitting ? 'SUBMITTING...' : 'SUBMIT BID'}
                                 </button>
                             </div>
                         </form>

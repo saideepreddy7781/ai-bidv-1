@@ -1,4 +1,4 @@
-// Create Tender Form Component
+// Create Tender Form Component - Neobrutalism Style
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -97,21 +97,22 @@ const CreateTender = () => {
     return (
         <>
             <Navbar />
-            <div className="min-h-screen bg-gray-50 py-8">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="bg-white rounded-lg shadow-md p-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-6">Create New Tender</h1>
+            <div className="page-brutal">
+                <div className="container-brutal max-w-4xl">
+                    <div className="card">
+                        <h1 className="text-4xl font-black text-black mb-8 uppercase tracking-tight">Create New Tender</h1>
 
                         {error && (
-                            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                            <div className="alert-error mb-6">
                                 {error}
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-8">
                             {/* Basic Information */}
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
+                                <h2 className="text-2xl font-black text-black mb-6 uppercase">Basic Information</h2>
+                                <div className="divider mb-6"></div>
 
                                 <div className="space-y-4">
                                     <div>
@@ -156,7 +157,8 @@ const CreateTender = () => {
 
                             {/* Requirements */}
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900 mb-4">Requirements</h2>
+                                <h2 className="text-2xl font-black text-black mb-6 uppercase">Requirements</h2>
+                                <div className="divider mb-6"></div>
 
                                 <div className="space-y-4">
                                     <div>
@@ -199,18 +201,19 @@ const CreateTender = () => {
 
                             {/* Evaluation Criteria */}
                             <div>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-xl font-semibold text-gray-900">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black text-black uppercase">
                                         Evaluation Criteria
                                     </h2>
-                                    <span className="text-sm text-gray-600">
+                                    <span className="text-xl font-black text-black">
                                         Total: {criteria.reduce((sum, c) => sum + c.weight, 0)}%
                                     </span>
                                 </div>
+                                <div className="divider mb-6"></div>
 
                                 <div className="space-y-4">
                                     {criteria.map((criterion, index) => (
-                                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                                        <div key={index} className="border-4 border-black p-6">
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div className="md:col-span-1">
                                                     <label className="label text-sm">Criterion Name</label>
@@ -242,7 +245,7 @@ const CreateTender = () => {
                                                         className="btn-danger w-full"
                                                         disabled={criteria.length <= 1}
                                                     >
-                                                        Remove
+                                                        REMOVE
                                                     </button>
                                                 </div>
                                             </div>
@@ -264,28 +267,29 @@ const CreateTender = () => {
                                 <button
                                     type="button"
                                     onClick={addCriterion}
-                                    className="mt-4 btn-secondary"
+                                    className="mt-6 btn-secondary"
                                 >
-                                    + Add Criterion
+                                    + ADD CRITERION
                                 </button>
                             </div>
 
                             {/* Submit Buttons */}
-                            <div className="flex gap-4 pt-6 border-t">
+                            <div className="divider"></div>
+                            <div className="flex gap-4 pt-6">
                                 <button
                                     type="button"
                                     onClick={() => navigate('/procurement/dashboard')}
                                     className="btn-secondary flex-1"
                                     disabled={loading}
                                 >
-                                    Cancel
+                                    CANCEL
                                 </button>
                                 <button
                                     type="submit"
                                     className="btn-primary flex-1"
                                     disabled={loading}
                                 >
-                                    {loading ? 'Creating...' : 'Create Tender'}
+                                    {loading ? 'CREATING...' : 'CREATE TENDER'}
                                 </button>
                             </div>
                         </form>

@@ -11,7 +11,7 @@
 1. **Initialize Git** (if not already done):
    ```bash
    git init
-   git add .
+   git add .   
    git commit -m "Initial commit - AI Bid Evaluation Platform"
    ```
 
