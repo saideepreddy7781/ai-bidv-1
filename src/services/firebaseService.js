@@ -11,7 +11,6 @@ import {
     query,
     where,
     orderBy,
-    limit,
     onSnapshot,
     serverTimestamp
 } from 'firebase/firestore';
@@ -19,12 +18,10 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signInWithPopup,
-    signOut,
-    onAuthStateChanged
+    signOut
 } from 'firebase/auth';
 import {
     ref,
-    uploadBytes,
     uploadBytesResumable,
     getDownloadURL,
     deleteObject
@@ -538,6 +535,64 @@ export const getAllUsers = async () => {
     }
 };
 
+/**
+ * Update user role (Admin only)
+ */
+export const updateUserRole = async (userId, newRole) => {
+    try {
+        await updateDoc(doc(db, COLLECTIONS.USERS, userId), {
+            role: newRole,
+            roleUpdatedAt: serverTimestamp()
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating user role:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get system statistics (Admin only)
+ */
+export const getSystemStats = async () => {
+    try {
+        const [users, tenders, bids] = await Promise.all([
+            getDocs(collection(db, COLLECTIONS.USERS)),
+            getDocs(collection(db, COLLECTIONS.TENDERS)),
+            getDocs(collection(db, COLLECTIONS.BIDS))
+        ]);
+
+        const usersData = users.docs.map(doc => doc.data());
+        const tendersData = tenders.docs.map(doc => doc.data());
+        const bidsData = bids.docs.map(doc => doc.data());
+
+        return {
+            totalUsers: users.size,
+            usersByRole: {
+                vendors: usersData.filter(u => u.role === 'VENDOR').length,
+                evaluators: usersData.filter(u => u.role === 'EVALUATOR').length,
+                procurement: usersData.filter(u => u.role === 'PROCUREMENT_OFFICER').length,
+                admins: usersData.filter(u => u.role === 'ADMIN').length
+            },
+            totalTenders: tenders.size,
+            tendersByStatus: {
+                open: tendersData.filter(t => t.status === 'OPEN').length,
+                completed: tendersData.filter(t => t.status === 'COMPLETED').length,
+                evaluating: tendersData.filter(t => t.status === 'EVALUATING').length
+            },
+            totalBids: bids.size,
+            bidsByStatus: {
+                submitted: bidsData.filter(b => b.status === 'SUBMITTED').length,
+                approved: bidsData.filter(b => b.status === 'APPROVED').length,
+                rejected: bidsData.filter(b => b.status === 'REJECTED').length
+            }
+        };
+    } catch (error) {
+        console.error('Error getting system stats:', error);
+        throw error;
+    }
+};
+
 export default {
     // Auth
     registerUser,
@@ -572,6 +627,8 @@ export default {
     // Real-time
     subscribeTenders,
     subscribeBidsByTender,
-    // Users
-    getAllUsers
+    // Users & Admin
+    getAllUsers,
+    updateUserRole,
+    getSystemStats
 };

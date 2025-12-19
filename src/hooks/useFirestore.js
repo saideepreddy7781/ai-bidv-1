@@ -27,6 +27,7 @@ export const useFirestore = (fetchFunction, dependencies = []) => {
 
     useEffect(() => {
         refetch();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, dependencies);
 
     return { data, loading, error, refetch };
@@ -43,7 +44,6 @@ export const useFirestoreSubscription = (subscribeFunction, dependencies = []) =
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        setLoading(true);
         setError(null);
 
         const unsubscribe = subscribeFunction((result) => {
@@ -58,6 +58,7 @@ export const useFirestoreSubscription = (subscribeFunction, dependencies = []) =
         return () => {
             if (unsubscribe) unsubscribe();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, dependencies);
 
     return { data, loading, error };

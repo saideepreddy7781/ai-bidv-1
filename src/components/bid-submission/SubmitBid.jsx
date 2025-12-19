@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getTenderById, submitBid } from '../../services/firebaseService';
-import { analyzeDocument, checkCompliance, generateBidSummary } from '../../services/geminiService';
+import { analyzeDocument, checkCompliance } from '../../services/geminiService';
 import Navbar from '../layout/Navbar';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
@@ -109,31 +109,44 @@ CERTIFICATIONS: ${bidData.certifications}
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-
-        // Double-check tender status before submitting
-        if (tender.status === 'COMPLETED' || tender.status === 'CLOSED') {
-            return setError('This tender is no longer accepting bids.');
-        }
-
-        if (!bidData.proposalText) {
-            return setError('Proposal text is required');
-        }
-
         setSubmitting(true);
 
         try {
-            const bid = {
-                tenderId: tender.id,
+            // Re-fetch tender to check current status before submitting
+            const currentTender = await getTenderById(tenderId);
+
+            if (!currentTender) {
+                setError('Tender not found');
+                setSubmitting(false);
+                return;
+            }
+
+            if (currentTender.status === 'COMPLETED' || currentTender.status === 'CLOSED') {
+                setError('This tender has been closed and is no longer accepting bids.');
+                setSubmitting(false);
+                setTender(null); // Clear tender to show error state
+                return;
+            }
+
+            if (!bidData.proposalText) {
+                setError('Please provide a proposal summary');
+                setSubmitting(false);
+                return;
+            }
+
+            const bidSubmission = {
+                tenderId: tenderId,
                 vendorId: userProfile.uid,
                 vendorName: userProfile.displayName,
-                companyName: userProfile.companyName,
+                companyName: userProfile.companyName || 'Not Specified',
                 bidData: bidData,
-                aiAnalysis: aiAnalysis || null,
-                complianceCheck: complianceCheck || null,
-                documents: [] // Empty for now since Storage is disabled
+                aiAnalysis: aiAnalysis,
+                complianceCheck: complianceCheck,
+                status: 'SUBMITTED'
             };
 
-            await submitBid(bid);
+            await submitBid(bidSubmission);
+            alert('Bid submitted successfully!');
             navigate('/vendor/dashboard');
         } catch (err) {
             setError('Failed to submit bid: ' + err.message);

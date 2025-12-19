@@ -88,6 +88,11 @@ VITE_FIREBASE_APP_ID=1:766982479036:web:...
 VITE_GROQ_API_KEY=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
 ```
 
+### MongoDB
+```
+MONGODB_URI=mongodb+srv://... (Your Connection String)
+```
+
 > **Note**: Make sure all environment variables start with `VITE_` to be accessible in the browser
 
 ## Step 4: Verify Deployment

@@ -111,8 +111,8 @@ const EvaluatorDashboard = () => {
                                                 </p>
                                             </div>
                                             <span className={`px-4 py-2 border-4 border-black font-bold uppercase ${evaluation.recommendation === 'APPROVE' ? 'bg-google-green text-white' :
-                                                    evaluation.recommendation === 'REJECT' ? 'bg-google-red text-white' :
-                                                        'bg-google-yellow text-black'
+                                                evaluation.recommendation === 'REJECT' ? 'bg-google-red text-white' :
+                                                    'bg-google-yellow text-black'
                                                 }`}>
                                                 {evaluation.recommendation}
                                             </span>
@@ -128,6 +128,23 @@ const EvaluatorDashboard = () => {
                                         {evaluation.comments && (
                                             <div className="mt-4 p-4 bg-gray-100 border-4 border-black">
                                                 <p className="font-semibold text-black">{evaluation.comments}</p>
+                                                <div className="mt-4 flex justify-end">
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                const res = await import('../../services/pdfService').then(m => m.generateAndSavePDF(evaluation));
+                                                                if (res.success) alert('Report saved to database!');
+                                                                else alert('Failed to save report: ' + res.error);
+                                                            } catch (e) {
+                                                                alert('Error generating report');
+                                                                console.error(e);
+                                                            }
+                                                        }}
+                                                        className="btn-success text-sm py-1 px-3"
+                                                    >
+                                                        GENERATE & SAVE REPORT
+                                                    </button>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -149,9 +166,9 @@ const EvaluatorDashboard = () => {
                                         <div className="flex justify-between items-start mb-3">
                                             <h3 className="font-black text-2xl text-black">{tender.title}</h3>
                                             <span className={`px-4 py-2 border-4 border-black font-bold uppercase ${tender.status === 'OPEN' ? 'bg-google-green text-white' :
-                                                    tender.status === 'EVALUATING' ? 'bg-google-yellow text-black' :
-                                                        tender.status === 'CLOSED' ? 'bg-gray-400 text-white' :
-                                                            'bg-google-blue text-white'
+                                                tender.status === 'EVALUATING' ? 'bg-google-yellow text-black' :
+                                                    tender.status === 'CLOSED' ? 'bg-gray-400 text-white' :
+                                                        'bg-google-blue text-white'
                                                 }`}>
                                                 {tender.status}
                                             </span>

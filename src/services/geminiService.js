@@ -241,7 +241,7 @@ Respond ONLY with valid JSON, no additional text.`;
  * @returns {Promise<string>} - Extracted text
  */
 export const extractTextFromDocument = async (documentUrl) => {
-    console.warn('Document text extraction requires backend implementation');
+    console.warn('Document text extraction requires backend implementation', documentUrl);
     return 'Document text extraction pending backend implementation. For demo purposes, use manual input.';
 };
 
