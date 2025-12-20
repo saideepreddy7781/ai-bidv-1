@@ -1,4 +1,4 @@
-// Register Component
+// Register Component - Professional Style
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -83,141 +83,178 @@ const Register = () => {
     };
 
     return (
-        <div className="page-brutal" style={{ backgroundColor: '#F5F5F5' }}>
-            <div className="max-w-md w-full mx-auto px-4">
-                <div className="card">
-                    <div className="text-center mb-8">
-                        <div className="flex items-center justify-center mb-4">
-                            <span className="text-4xl font-black" style={{ color: '#4285F4' }}>AI</span>
-                            <span className="text-4xl font-black mx-1" style={{ color: '#EA4335' }}>Bid</span>
-                            <span className="text-4xl font-black" style={{ color: '#FBBC04' }}>Eval</span>
-                            <span className="text-4xl font-black ml-1" style={{ color: '#34A853' }}>✓</span>
+        <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                <div className="flex justify-center mb-6">
+                    <div className="flex items-center gap-1.5">
+                        <div className="bg-gradient-to-br from-primary-600 to-primary-800 text-white p-2 rounded-lg shadow-lg">
+                            <span className="text-2xl font-bold tracking-tight">AI</span>
                         </div>
-                        <h1 className="text-3xl font-black text-black mb-2 uppercase tracking-tight">
-                            Create Account
-                        </h1>
-                        <p className="text-black font-semibold">Join the platform</p>
+                        <span className="text-2xl font-bold text-slate-800 tracking-tight">BidEval</span>
                     </div>
+                </div>
+                <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
+                    Create your account
+                </h2>
+                <p className="mt-2 text-center text-sm text-slate-600">
+                    Already have an account?{' '}
+                    <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
+                        Sign in instead
+                    </Link>
+                </p>
+            </div>
 
+            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-slate-200">
                     {error && (
-                        <div className="alert-error">
+                        <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
                             {error}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
-                            <label className="label">Full Name</label>
-                            <input
-                                type="text"
-                                name="displayName"
-                                value={formData.displayName}
-                                onChange={handleChange}
-                                className="input-field"
-                                placeholder="John Doe"
-                                required
-                            />
+                            <label htmlFor="displayName" className="block text-sm font-medium text-slate-700">
+                                Full Name
+                            </label>
+                            <div className="mt-1">
+                                <input
+                                    type="text"
+                                    name="displayName"
+                                    id="displayName"
+                                    required
+                                    value={formData.displayName}
+                                    onChange={handleChange}
+                                    className="input-field"
+                                    placeholder="John Doe"
+                                />
+                            </div>
                         </div>
 
                         <div>
-                            <label className="label">Email Address</label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                className="input-field"
-                                placeholder="you@example.com"
-                                required
-                            />
+                            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                                Email address
+                            </label>
+                            <div className="mt-1">
+                                <input
+                                    type="email"
+                                    name="email"
+                                    id="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className="input-field"
+                                    placeholder="you@example.com"
+                                />
+                            </div>
                         </div>
 
                         <div>
-                            <label className="label">Role</label>
-                            <select
-                                name="role"
-                                value={formData.role}
-                                onChange={handleChange}
-                                className="input-field"
-                                required
-                            >
-                                <option value={USER_ROLES.VENDOR}>Vendor</option>
-                                <option value={USER_ROLES.PROCUREMENT_OFFICER}>Procurement Officer</option>
-                                <option value={USER_ROLES.EVALUATOR}>Evaluator</option>
-                                <option value={USER_ROLES.ADMIN}>Admin</option>
-                            </select>
+                            <label htmlFor="role" className="block text-sm font-medium text-slate-700">
+                                Role
+                            </label>
+                            <div className="mt-1">
+                                <select
+                                    name="role"
+                                    id="role"
+                                    required
+                                    value={formData.role}
+                                    onChange={handleChange}
+                                    className="input-field"
+                                >
+                                    <option value={USER_ROLES.VENDOR}>Vendor</option>
+                                    <option value={USER_ROLES.PROCUREMENT_OFFICER}>Procurement Officer</option>
+                                    <option value={USER_ROLES.EVALUATOR}>Evaluator</option>
+                                    <option value={USER_ROLES.ADMIN}>Admin</option>
+                                </select>
+                            </div>
                         </div>
 
                         {formData.role === 'VENDOR' && (
-                            <>
+                            <div className="space-y-6 pt-2 border-t border-slate-100">
                                 <div>
-                                    <label className="label">Company Name</label>
-                                    <input
-                                        type="text"
-                                        name="companyName"
-                                        value={formData.companyName}
-                                        onChange={handleChange}
-                                        className="input-field"
-                                        placeholder="ABC Corporation"
-                                        required
-                                    />
+                                    <label htmlFor="companyName" className="block text-sm font-medium text-slate-700">
+                                        Company Name
+                                    </label>
+                                    <div className="mt-1">
+                                        <input
+                                            type="text"
+                                            name="companyName"
+                                            id="companyName"
+                                            required
+                                            value={formData.companyName}
+                                            onChange={handleChange}
+                                            className="input-field"
+                                            placeholder="ABC Corporation"
+                                        />
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <label className="label">Registration Number (Optional)</label>
-                                    <input
-                                        type="text"
-                                        name="registrationNumber"
-                                        value={formData.registrationNumber}
-                                        onChange={handleChange}
-                                        className="input-field"
-                                        placeholder="REG123456"
-                                    />
+                                    <label htmlFor="registrationNumber" className="block text-sm font-medium text-slate-700">
+                                        Registration Number (Optional)
+                                    </label>
+                                    <div className="mt-1">
+                                        <input
+                                            type="text"
+                                            name="registrationNumber"
+                                            id="registrationNumber"
+                                            value={formData.registrationNumber}
+                                            onChange={handleChange}
+                                            className="input-field"
+                                            placeholder="REG123456"
+                                        />
+                                    </div>
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         <div>
-                            <label className="label">Password</label>
-                            <input
-                                type="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                className="input-field"
-                                placeholder="••••••••"
-                                required
-                            />
+                            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                                Password
+                            </label>
+                            <div className="mt-1">
+                                <input
+                                    type="password"
+                                    name="password"
+                                    id="password"
+                                    required
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className="input-field"
+                                    placeholder="••••••••"
+                                />
+                            </div>
                         </div>
 
                         <div>
-                            <label className="label">Confirm Password</label>
-                            <input
-                                type="password"
-                                name="confirmPassword"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                className="input-field"
-                                placeholder="••••••••"
-                                required
-                            />
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">
+                                Confirm Password
+                            </label>
+                            <div className="mt-1">
+                                <input
+                                    type="password"
+                                    name="confirmPassword"
+                                    id="confirmPassword"
+                                    required
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
+                                    className="input-field"
+                                    placeholder="••••••••"
+                                />
+                            </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-6"
-                        >
-                            {loading ? 'CREATING ACCOUNT...' : 'REGISTER'}
-                        </button>
+                        <div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full btn-primary flex justify-center py-2 px-4"
+                            >
+                                {loading ? 'Creating account...' : 'Create Account'}
+                            </button>
+                        </div>
                     </form>
-
-                    <p className="mt-8 text-center text-sm font-semibold text-black">
-                        Already have an account?{' '}
-                        <Link to="/login" className="link-brutal" style={{ color: '#4285F4' }}>
-                            Login here
-                        </Link>
-                    </p>
                 </div>
             </div>
         </div>

@@ -7,20 +7,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        'google-blue': '#4285F4',
-        'google-red': '#EA4335',
-        'google-yellow': '#FBBC04',
-        'google-green': '#34A853',
+        primary: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e', // Deep Blue for headers
+          950: '#082f49',
+        },
+        secondary: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
+        },
       },
-      boxShadow: {
-        'brutal': '8px 8px 0px 0px rgba(0, 0, 0, 1)',
-        'brutal-sm': '4px 4px 0px 0px rgba(0, 0, 0, 1)',
-        'brutal-lg': '12px 12px 0px 0px rgba(0, 0, 0, 1)',
-        'brutal-hover': '2px 2px 0px 0px rgba(0, 0, 0, 1)',
-      },
-      borderWidth: {
-        '3': '3px',
-        '5': '5px',
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
     },
   },

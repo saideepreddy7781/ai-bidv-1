@@ -1,4 +1,4 @@
-// Vendor Dashboard Component - Brutal Neobrutalism Style
+// Vendor Dashboard Component - Professional Style
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -11,14 +11,14 @@ import jsPDF from 'jspdf';
 const generateApprovalPDF = (bid) => {
     const doc = new jsPDF();
 
-    //Add header
-    doc.setFillColor(34, 139, 34); // Green
-    doc.rect(0, 0, 210, 30, 'F');
+    // Professional Header
+    doc.setFillColor(37, 99, 235); // Blue-600
+    doc.rect(0, 0, 210, 40, 'F');
 
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    doc.setFontSize(26);
     doc.setFont('helvetica', 'bold');
-    doc.text('BID APPROVAL CERTIFICATE', 105, 18, { align: 'center' });
+    doc.text('BID AWARD CERTIFICATE', 105, 25, { align: 'center' });
 
     // Reset text color
     doc.setTextColor(0, 0, 0);
@@ -26,52 +26,52 @@ const generateApprovalPDF = (bid) => {
     // Certificate body
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text('AI Bid Evaluation Platform', 105, 45, { align: 'center' });
+    doc.text('AI Bid Evaluation Platform', 105, 55, { align: 'center' });
 
     // Border
     doc.setLineWidth(0.5);
-    doc.rect(15, 55, 180, 120);
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(20, 65, 170, 140);
 
     // Content
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('This verifies that the bid submitted by:', 105, 85, { align: 'center' });
+
+    doc.setFontSize(22);
+    doc.setTextColor(30, 41, 59); // Slate-800
+    doc.text(bid.companyName || 'Unknown Company', 105, 105, { align: 'center' });
+
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('This is to certify that:', 20, 70);
-
+    doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
+    doc.text('has been officially approved and awarded.', 105, 120, { align: 'center' });
 
-    const content = [
-        { label: 'Company Name:', value: bid.companyName || 'N/A' },
-        { label: 'Vendor:', value: bid.vendorName || 'N/A' },
-        { label: 'Bid ID:', value: bid.id },
-        { label: 'Submission Date:', value: new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString() },
-        { label: 'Evaluation Date:', value: bid.evaluatedAt ? new Date(bid.evaluatedAt).toLocaleDateString() : 'N/A' },
-        { label: 'Evaluated By:', value: bid.evaluatorName || 'N/A' },
-        { label: 'Status:', value: 'APPROVED ✓' }
-    ];
+    const contentStart = 140;
+    const lineHeight = 12;
 
-    let yPos = 85;
-    content.forEach(item => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(item.label, 25, yPos);
-        doc.setFont('helvetica', 'normal');
-        doc.text(item.value, 80, yPos);
-        yPos += 10;
-    });
+    doc.setFontSize(11);
+    doc.text(`Vendor Name: ${bid.vendorName || 'N/A'}`, 105, contentStart, { align: 'center' });
+    doc.text(`Bid Reference ID: ${bid.id}`, 105, contentStart + lineHeight, { align: 'center' });
+    doc.text(`Submission Date: ${new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString()}`, 105, contentStart + lineHeight * 2, { align: 'center' });
+    doc.text(`Award Date: ${bid.evaluatedAt ? new Date(bid.evaluatedAt).toLocaleDateString() : new Date().toLocaleDateString()}`, 105, contentStart + lineHeight * 3, { align: 'center' });
 
-    // Approval statement
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('Your bid has been APPROVED', 105, 160, { align: 'center' });
+    // Seal/Stamp visual representation (simple circle)
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(2);
+    doc.circle(105, 235, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(37, 99, 235);
+    doc.text('OFFICIAL', 105, 233, { align: 'center' });
+    doc.text('AWARD', 105, 238, { align: 'center' });
 
     // Footer
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'italic');
-    doc.text('This is an electronically generated document', 105, 185, { align: 'center' });
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 192, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text('This is an electronically generated document. Valid without signature.', 105, 280, { align: 'center' });
 
     // Save
-    doc.save(`Approval_Certificate_${bid.id.slice(0, 8)}.pdf`);
+    doc.save(`Award_Certificate_${bid.id.slice(0, 8)}.pdf`);
 };
 
 const VendorDashboard = () => {
@@ -90,8 +90,6 @@ const VendorDashboard = () => {
                     getBidsByVendor(userProfile.uid)
                 ]);
 
-                console.log('Fetched tenders:', tendersData); // Debug log
-
                 // Filter for OPEN tenders only
                 const openTenders = tendersData.filter(t => t.status === 'OPEN');
                 setAllTenders(openTenders);
@@ -109,145 +107,226 @@ const VendorDashboard = () => {
         }
     }, [userProfile]);
 
+    const getBidStatusBadge = (status) => {
+        const styles = {
+            'SUBMITTED': 'bg-blue-100 text-blue-800 border-blue-200',
+            'EVALUATED': 'bg-purple-100 text-purple-800 border-purple-200',
+            'APPROVED': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            'REJECTED': 'bg-red-100 text-red-800 border-red-200',
+            'UNDER_REVIEW': 'bg-amber-100 text-amber-800 border-amber-200'
+        };
+        const defaultStyle = 'bg-gray-100 text-gray-800 border-gray-200';
+
+        return (
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status] || defaultStyle}`}>
+                {status}
+            </span>
+        );
+    };
+
     if (loading) return (
         <>
             <Navbar />
-            <LoadingSpinner />
+            <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
+                <LoadingSpinner />
+            </div>
         </>
     );
 
     return (
         <>
             <Navbar />
-            <div className="page-brutal">
-                <div className="container-brutal">
+            <div className="min-h-screen bg-slate-50 py-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Error Message */}
                     {error && (
-                        <div className="alert-error mb-6">
-                            {error}
+                        <div className="mb-6 rounded-md bg-red-50 p-4 border border-red-200">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <div className="text-sm text-red-700">{error}</div>
+                                </div>
+                            </div>
                         </div>
                     )}
 
                     {/* Welcome Section */}
-                    <div className="card mb-8">
-                        <h1 className="text-4xl font-black text-black mb-2 uppercase tracking-tight">
+                    <div className="mb-8">
+                        <h1 className="text-2xl font-bold leading-7 text-slate-900 sm:truncate sm:text-3xl sm:tracking-tight">
                             Welcome, {userProfile?.displayName}!
                         </h1>
-                        <p className="text-black font-bold">
-                            {userProfile?.companyName && `${userProfile.companyName} - `}
-                            Manage your tenders and bids
+                        <p className="mt-1 text-sm text-slate-500">
+                            {userProfile?.companyName ? `${userProfile.companyName} - ` : ''}
+                            Manage your tenders and track bid status.
                         </p>
                     </div>
 
                     {/* Stats */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="stat-card-blue">
-                            <p className="text-sm font-bold mb-2 uppercase">Active Tenders</p>
-                            <p className="text-5xl font-black">{allTenders.length}</p>
+                        <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Active Opportunities</p>
+                                    <p className="mt-2 text-3xl font-semibold text-slate-900">{allTenders.length}</p>
+                                </div>
+                                <div className="p-3 bg-blue-50 rounded-lg">
+                                    <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="stat-card-green">
-                            <p className="text-sm font-bold mb-2 uppercase">My Bids</p>
-                            <p className="text-5xl font-black">{myBids.length}</p>
+                        <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">My Submissions</p>
+                                    <p className="mt-2 text-3xl font-semibold text-slate-900">{myBids.length}</p>
+                                </div>
+                                <div className="p-3 bg-emerald-50 rounded-lg">
+                                    <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="stat-card-yellow">
-                            <p className="text-sm font-bold mb-2 uppercase">Pending Review</p>
-                            <p className="text-5xl font-black">
-                                {myBids.filter(b => b.status === 'SUBMITTED').length}
-                            </p>
+                        <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Pending Review</p>
+                                    <p className="mt-2 text-3xl font-semibold text-slate-900">
+                                        {myBids.filter(b => b.status === 'SUBMITTED').length}
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-amber-50 rounded-lg">
+                                    <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Available Tenders */}
-                    <div className="card mb-8">
-                        <h2 className="text-3xl font-black text-black mb-6 uppercase">Available Tenders</h2>
-
-                        {allTenders.length === 0 ? (
-                            <p className="text-black font-bold text-center py-8">No active tenders available</p>
-                        ) : (
-                            <div className="space-y-4">
-                                {allTenders.slice(0, 5).map((tender) => (
-                                    <div key={tender.id} className="border-4 border-black p-6">
-                                        <h3 className="font-black text-2xl text-black mb-3">{tender.title}</h3>
-                                        <p className="text-black font-semibold mb-4 line-clamp-2">{tender.description}</p>
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex gap-4">
-                                                <span className="font-bold text-black">
-                                                    Deadline: {new Date(tender.deadline?.seconds * 1000).toLocaleDateString()}
-                                                </span>
-                                                <span className="badge-green">OPEN</span>
-                                            </div>
-                                            <Link
-                                                to={`/vendor/submit-bid/${tender.id}`}
-                                                className="btn-primary"
-                                            >
-                                                SUBMIT BID
-                                            </Link>
-                                        </div>
-                                    </div>
-                                ))}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Available Tenders */}
+                        <div className="card h-full">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg font-bold text-slate-900">Available Tenders</h2>
+                                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
+                                    {allTenders.length}
+                                </span>
                             </div>
-                        )}
-                    </div>
 
-                    {/* Recent Bids */}
-                    <div className="card">
-                        <h2 className="text-3xl font-black text-black mb-6 uppercase">My Recent Bids</h2>
-
-                        {myBids.length === 0 ? (
-                            <p className="text-black font-bold text-center py-8">You haven't submitted any bids yet</p>
-                        ) : (
-                            <div className="space-y-4">
-                                {myBids.slice(0, 3).map((bid) => (
-                                    <div key={bid.id} className="border-4 border-black p-6">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <h3 className="font-black text-xl text-black">BID #{bid.id.slice(0, 8)}</h3>
-                                            <span className={`px-4 py-2 border-4 border-black font-bold uppercase ${bid.status === 'SUBMITTED' ? 'bg-google-blue text-white' :
-                                                    bid.status === 'EVALUATED' ? 'bg-purple-500 text-white' :
-                                                        bid.status === 'APPROVED' ? 'bg-google-green text-white' :
-                                                            bid.status === 'REJECTED' ? 'bg-google-red text-white' :
-                                                                bid.status === 'UNDER_REVIEW' ? 'bg-google-yellow text-black' :
-                                                                    'bg-gray-300 text-black'
-                                                }`}>
-                                                {bid.status}
-                                            </span>
-                                        </div>
-                                        <p className="text-black font-semibold mb-3">
-                                            Submitted: {new Date(bid.submittedAt?.seconds * 1000).toLocaleString()}
-                                        </p>
-
-                                        {/* Show evaluation details if evaluated */}
-                                        {bid.evaluatorName && (
-                                            <div className="mt-4 p-4 bg-google-blue border-4 border-black text-white">
-                                                <p className="font-bold">
-                                                    Evaluated by: {bid.evaluatorName}
-                                                </p>
-                                                <p className="text-sm mt-1">
-                                                    {new Date(bid.evaluatedAt).toLocaleString()}
-                                                </p>
+                            {allTenders.length === 0 ? (
+                                <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
+                                    <p className="text-sm text-slate-500">No active tenders available at the moment.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {allTenders.slice(0, 5).map((tender) => (
+                                        <div key={tender.id} className="group relative rounded-lg border border-slate-200 bg-white p-5 hover:border-slate-300 transition-all">
+                                            <div className="flex justify-between items-start">
+                                                <div className="pr-4">
+                                                    <h3 className="text-base font-semibold leading-6 text-slate-900 mb-1">
+                                                        {tender.title}
+                                                    </h3>
+                                                    <p className="text-sm text-slate-500 line-clamp-2 mb-3">
+                                                        {tender.description}
+                                                    </p>
+                                                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                                                        <span className="flex items-center gap-1">
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                            </svg>
+                                                            Deadline: {new Date(tender.deadline?.seconds * 1000).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end gap-3">
+                                                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                                                        OPEN
+                                                    </span>
+                                                    <Link
+                                                        to={`/vendor/submit-bid/${tender.id}`}
+                                                        className="text-sm font-medium text-primary-600 hover:text-primary-500"
+                                                    >
+                                                        Submit Bid &rarr;
+                                                    </Link>
+                                                </div>
                                             </div>
-                                        )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
 
-                                        {bid.aiAnalysis?.summary && (
-                                            <p className="text-black font-semibold mt-3">
-                                                AI Summary: {bid.aiAnalysis.summary.slice(0, 100)}...
-                                            </p>
-                                        )}
-
-                                        {/* Download Approval PDF button */}
-                                        {bid.status === 'APPROVED' && (
-                                            <button
-                                                onClick={() => generateApprovalPDF(bid)}
-                                                className="mt-4 w-full btn-success"
-                                            >
-                                                📄 DOWNLOAD APPROVAL CERTIFICATE
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
+                        {/* Recent Bids */}
+                        <div className="card h-full">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg font-bold text-slate-900">My Recent Bids</h2>
+                                <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
+                                    {myBids.length}
+                                </span>
                             </div>
-                        )}
+
+                            {myBids.length === 0 ? (
+                                <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
+                                    <svg className="mx-auto h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <p className="mt-2 text-sm text-slate-500">You haven't submitted any bids yet</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {myBids.slice(0, 5).map((bid) => (
+                                        <div key={bid.id} className="rounded-lg border border-slate-200 bg-white p-5 hover:bg-slate-50 transition-colors">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-slate-900">Ref: {bid.id.slice(0, 8).toUpperCase()}</h3>
+                                                    <p className="text-xs text-slate-500">
+                                                        Submitted: {new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                {getBidStatusBadge(bid.status)}
+                                            </div>
+
+                                            {/* AI Summary */}
+                                            {bid.aiAnalysis?.summary && (
+                                                <p className="mt-2 text-xs text-slate-600 line-clamp-2">
+                                                    <span className="font-semibold text-slate-700">AI Summary:</span> {bid.aiAnalysis.summary}
+                                                </p>
+                                            )}
+
+                                            {/* Approved Actions */}
+                                            {bid.status === 'APPROVED' && (
+                                                <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
+                                                    <span className="text-xs font-medium text-emerald-700 flex items-center gap-1">
+                                                        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                                        </svg>
+                                                        Awarded
+                                                    </span>
+                                                    <button
+                                                        onClick={() => generateApprovalPDF(bid)}
+                                                        className="text-xs font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                                        </svg>
+                                                        Download Certificate
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
