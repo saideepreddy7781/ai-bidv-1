@@ -5,6 +5,11 @@ import { getAllUsers, getAllTenders, updateUserRole, getSystemStats } from '../.
 import Navbar from '../layout/Navbar';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
+// Animation Components
+import AnimatedCard from '../animations/AnimatedCard';
+import StaggerContainer, { StaggerItem } from '../animations/StaggerContainer';
+import AnimatedButton from '../animations/AnimatedButton';
+
 const AdminDashboard = () => {
     const { userProfile } = useAuth();
     // const navigate = useNavigate(); // Unused
@@ -98,51 +103,59 @@ const AdminDashboard = () => {
 
                     {/* Statistics Cards */}
                     {stats && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                            <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
-                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Users</p>
-                                <div className="mt-2 flex items-baseline gap-2">
-                                    <span className="text-3xl font-semibold text-slate-900">{stats.totalUsers}</span>
-                                </div>
-                                <div className="mt-4 text-xs font-medium text-slate-400">
-                                    V:{stats.usersByRole.vendors} | E:{stats.usersByRole.evaluators} | P:{stats.usersByRole.procurement}
-                                </div>
-                            </div>
+                        <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <StaggerItem className="h-full">
+                                <AnimatedCard className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200 h-full">
+                                    <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Users</p>
+                                    <div className="mt-2 flex items-baseline gap-2">
+                                        <span className="text-3xl font-semibold text-slate-900">{stats.totalUsers}</span>
+                                    </div>
+                                    <div className="mt-4 text-xs font-medium text-slate-400">
+                                        V:{stats.usersByRole.vendors} | E:{stats.usersByRole.evaluators} | P:{stats.usersByRole.procurement}
+                                    </div>
+                                </AnimatedCard>
+                            </StaggerItem>
 
-                            <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
-                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Tenders</p>
-                                <div className="mt-2 flex items-baseline gap-2">
-                                    <span className="text-3xl font-semibold text-slate-900">{stats.totalTenders}</span>
-                                </div>
-                                <div className="mt-4 text-xs font-medium text-slate-400">
-                                    Open: {stats.tendersByStatus.open} | Done: {stats.tendersByStatus.completed}
-                                </div>
-                            </div>
+                            <StaggerItem className="h-full">
+                                <AnimatedCard className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200 h-full">
+                                    <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Tenders</p>
+                                    <div className="mt-2 flex items-baseline gap-2">
+                                        <span className="text-3xl font-semibold text-slate-900">{stats.totalTenders}</span>
+                                    </div>
+                                    <div className="mt-4 text-xs font-medium text-slate-400">
+                                        Open: {stats.tendersByStatus.open} | Done: {stats.tendersByStatus.completed}
+                                    </div>
+                                </AnimatedCard>
+                            </StaggerItem>
 
-                            <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
-                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Bids</p>
-                                <div className="mt-2 flex items-baseline gap-2">
-                                    <span className="text-3xl font-semibold text-slate-900">{stats.totalBids}</span>
-                                </div>
-                                <div className="mt-4 text-xs font-medium text-slate-400">
-                                    Pending: {stats.bidsByStatus.submitted}
-                                </div>
-                            </div>
+                            <StaggerItem className="h-full">
+                                <AnimatedCard className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200 h-full">
+                                    <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Bids</p>
+                                    <div className="mt-2 flex items-baseline gap-2">
+                                        <span className="text-3xl font-semibold text-slate-900">{stats.totalBids}</span>
+                                    </div>
+                                    <div className="mt-4 text-xs font-medium text-slate-400">
+                                        Pending: {stats.bidsByStatus.submitted}
+                                    </div>
+                                </AnimatedCard>
+                            </StaggerItem>
 
-                            <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
-                                <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Approval Rate</p>
-                                <div className="mt-2 flex items-baseline gap-2">
-                                    <span className="text-3xl font-semibold text-slate-900">
-                                        {stats.totalBids > 0
-                                            ? Math.round((stats.bidsByStatus.approved / stats.totalBids) * 100)
-                                            : 0}%
-                                    </span>
-                                </div>
-                                <div className="mt-4 text-xs font-medium text-slate-400">
-                                    ✓ {stats.bidsByStatus.approved} | ✗ {stats.bidsByStatus.rejected}
-                                </div>
-                            </div>
-                        </div>
+                            <StaggerItem className="h-full">
+                                <AnimatedCard className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200 h-full">
+                                    <p className="text-sm font-medium text-slate-500 uppercase tracking-wider">Approval Rate</p>
+                                    <div className="mt-2 flex items-baseline gap-2">
+                                        <span className="text-3xl font-semibold text-slate-900">
+                                            {stats.totalBids > 0
+                                                ? Math.round((stats.bidsByStatus.approved / stats.totalBids) * 100)
+                                                : 0}%
+                                        </span>
+                                    </div>
+                                    <div className="mt-4 text-xs font-medium text-slate-400">
+                                        ✓ {stats.bidsByStatus.approved} | ✗ {stats.bidsByStatus.rejected}
+                                    </div>
+                                </AnimatedCard>
+                            </StaggerItem>
+                        </StaggerContainer>
                     )}
 
                     {/* Tab Navigation */}
@@ -153,9 +166,9 @@ const AdminDashboard = () => {
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
                                     className={`${activeTab === tab
-                                            ? 'border-primary-500 text-primary-600'
-                                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm uppercase tracking-wide`}
+                                        ? 'border-primary-500 text-primary-600'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm uppercase tracking-wide transition-colors duration-200`}
                                 >
                                     {tab === 'users' ? 'User Management' : tab === 'tenders' ? 'Tender Oversight' : 'Overview'}
                                 </button>
@@ -167,7 +180,7 @@ const AdminDashboard = () => {
                     {activeTab === 'overview' && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
+                                <AnimatedCard className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
                                     <h3 className="text-lg font-bold text-slate-900 mb-4">User Distribution</h3>
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
@@ -187,9 +200,9 @@ const AdminDashboard = () => {
                                             <span className="font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full text-sm">{stats?.usersByRole.admins || 0}</span>
                                         </div>
                                     </div>
-                                </div>
+                                </AnimatedCard>
 
-                                <div className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
+                                <AnimatedCard className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200">
                                     <h3 className="text-lg font-bold text-slate-900 mb-4">Tender Status</h3>
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
@@ -205,7 +218,7 @@ const AdminDashboard = () => {
                                             <span className="font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full text-sm">{stats?.tendersByStatus.evaluating || 0}</span>
                                         </div>
                                     </div>
-                                </div>
+                                </AnimatedCard>
                             </div>
 
                             <div className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl shadow-sm p-6 text-white">
@@ -237,7 +250,7 @@ const AdminDashboard = () => {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-slate-200">
                                         {users.map((user) => (
-                                            <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                                            <tr key={user.id} className="hover:bg-slate-50 transition-colors duration-150 ease-in-out">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{user.displayName || 'N/A'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{user.email}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -251,7 +264,7 @@ const AdminDashboard = () => {
                                                         value={user.role}
                                                         onChange={(e) => handleRoleChange(user.id, e.target.value)}
                                                         disabled={processing || user.id === userProfile?.uid}
-                                                        className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 disabled:opacity-50 disabled:bg-slate-50"
+                                                        className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6 disabled:opacity-50 disabled:bg-slate-50 transition-shadow duration-200"
                                                     >
                                                         <option value="VENDOR">Vendor</option>
                                                         <option value="EVALUATOR">Evaluator</option>
@@ -269,51 +282,53 @@ const AdminDashboard = () => {
 
                     {/* Tender Oversight Tab */}
                     {activeTab === 'tenders' && (
-                        <div className="space-y-4">
+                        <StaggerContainer className="space-y-4">
                             {tenders.map((tender) => (
-                                <div key={tender.id} className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
-                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                                        <div>
-                                            <h3 className="text-lg font-bold text-slate-900">{tender.title}</h3>
-                                            <p className="text-sm text-slate-500 mt-1 line-clamp-1">{tender.description}</p>
+                                <StaggerItem key={tender.id}>
+                                    <AnimatedCard className="card bg-white p-6 shadow-sm rounded-xl border border-slate-200 hover:border-slate-300 transition-colors">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-slate-900">{tender.title}</h3>
+                                                <p className="text-sm text-slate-500 mt-1 line-clamp-1">{tender.description}</p>
+                                            </div>
+                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(tender.status)}`}>
+                                                {tender.status}
+                                            </span>
                                         </div>
-                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(tender.status)}`}>
-                                            {tender.status}
-                                        </span>
-                                    </div>
 
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 py-4 border-t border-slate-100">
-                                        <div>
-                                            <span className="text-xs font-medium text-slate-500 uppercase">Deadline:</span>
-                                            <div className="mt-1 text-sm font-semibold text-slate-900">
-                                                {new Date(tender.deadline?.seconds * 1000).toLocaleDateString()}
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 py-4 border-t border-slate-100">
+                                            <div>
+                                                <span className="text-xs font-medium text-slate-500 uppercase">Deadline:</span>
+                                                <div className="mt-1 text-sm font-semibold text-slate-900">
+                                                    {new Date(tender.deadline?.seconds * 1000).toLocaleDateString()}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-medium text-slate-500 uppercase">Budget:</span>
+                                                <div className="mt-1 text-sm font-semibold text-slate-900">{tender.budget || 'N/A'}</div>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-medium text-slate-500 uppercase">Criteria:</span>
+                                                <div className="mt-1 text-sm font-semibold text-slate-900">{tender.criteria?.length || 0}</div>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs font-medium text-slate-500 uppercase">Created:</span>
+                                                <div className="mt-1 text-sm font-semibold text-slate-900">
+                                                    {new Date(tender.createdAt?.seconds * 1000).toLocaleDateString()}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div>
-                                            <span className="text-xs font-medium text-slate-500 uppercase">Budget:</span>
-                                            <div className="mt-1 text-sm font-semibold text-slate-900">{tender.budget || 'N/A'}</div>
-                                        </div>
-                                        <div>
-                                            <span className="text-xs font-medium text-slate-500 uppercase">Criteria:</span>
-                                            <div className="mt-1 text-sm font-semibold text-slate-900">{tender.criteria?.length || 0}</div>
-                                        </div>
-                                        <div>
-                                            <span className="text-xs font-medium text-slate-500 uppercase">Created:</span>
-                                            <div className="mt-1 text-sm font-semibold text-slate-900">
-                                                {new Date(tender.createdAt?.seconds * 1000).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    {tender.winningBidId && (
-                                        <div className="mt-4 p-3 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center gap-2 text-emerald-700">
-                                            <svg className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            <span className="text-xs font-bold uppercase">Winner Selected: Bid #{tender.winningBidId.slice(0, 8)}</span>
-                                        </div>
-                                    )}
-                                </div>
+                                        {tender.winningBidId && (
+                                            <div className="mt-4 p-3 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center gap-2 text-emerald-700">
+                                                <svg className="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                <span className="text-xs font-bold uppercase">Winner Selected: Bid #{tender.winningBidId.slice(0, 8)}</span>
+                                            </div>
+                                        )}
+                                    </AnimatedCard>
+                                </StaggerItem>
                             ))}
 
                             {tenders.length === 0 && (
@@ -321,7 +336,7 @@ const AdminDashboard = () => {
                                     <p className="text-slate-500 font-medium">No tenders found</p>
                                 </div>
                             )}
-                        </div>
+                        </StaggerContainer>
                     )}
                 </div>
             </div>

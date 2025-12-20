@@ -5,6 +5,11 @@ import { getAllTenders } from '../../services/firebaseService';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import Navbar from '../layout/Navbar';
 
+// Animation Components
+import AnimatedCard from '../animations/AnimatedCard';
+import StaggerContainer, { StaggerLi, StaggerItem } from '../animations/StaggerContainer';
+import AnimatedButton from '../animations/AnimatedButton';
+
 const ProcurementDashboard = () => {
     const [tenders, setTenders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -65,40 +70,50 @@ const ProcurementDashboard = () => {
                             </p>
                         </div>
                         <div className="mt-4 flex md:ml-4 md:mt-0">
-                            <Link to="/procurement/create-tender" className="btn-primary">
-                                <svg className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                                </svg>
-                                Create New Tender
+                            <Link to="/procurement/create-tender">
+                                <AnimatedButton className="btn-primary">
+                                    <svg className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                    </svg>
+                                    Create New Tender
+                                </AnimatedButton>
                             </Link>
                         </div>
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-                        <div className="card bg-white overflow-hidden shadow-sm rounded-lg border border-slate-200 p-5">
-                            <dt className="text-sm font-medium text-slate-500 truncate">Total Tenders</dt>
-                            <dd className="mt-1 text-3xl font-semibold text-slate-900">{tenders.length}</dd>
-                        </div>
-                        <div className="card bg-white overflow-hidden shadow-sm rounded-lg border border-slate-200 p-5">
-                            <dt className="text-sm font-medium text-slate-500 truncate">Active Tenders</dt>
-                            <dd className="mt-1 text-3xl font-semibold text-emerald-600">
-                                {tenders.filter(t => t.status === 'OPEN').length}
-                            </dd>
-                        </div>
-                        <div className="card bg-white overflow-hidden shadow-sm rounded-lg border border-slate-200 p-5">
-                            <dt className="text-sm font-medium text-slate-500 truncate">Under Evaluation</dt>
-                            <dd className="mt-1 text-3xl font-semibold text-amber-600">
-                                {tenders.filter(t => t.status === 'EVALUATING').length}
-                            </dd>
-                        </div>
-                        <div className="card bg-white overflow-hidden shadow-sm rounded-lg border border-slate-200 p-5">
-                            <dt className="text-sm font-medium text-slate-500 truncate">Completed</dt>
-                            <dd className="mt-1 text-3xl font-semibold text-blue-600">
-                                {tenders.filter(t => t.status === 'COMPLETED').length}
-                            </dd>
-                        </div>
-                    </div>
+                    <StaggerContainer className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+                        <StaggerItem>
+                            <AnimatedCard className="card bg-white overflow-hidden shadow-sm rounded-lg border border-slate-200 p-5">
+                                <dt className="text-sm font-medium text-slate-500 truncate">Total Tenders</dt>
+                                <dd className="mt-1 text-3xl font-semibold text-slate-900">{tenders.length}</dd>
+                            </AnimatedCard>
+                        </StaggerItem>
+                        <StaggerItem>
+                            <AnimatedCard className="card bg-white overflow-hidden shadow-sm rounded-lg border border-slate-200 p-5">
+                                <dt className="text-sm font-medium text-slate-500 truncate">Active Tenders</dt>
+                                <dd className="mt-1 text-3xl font-semibold text-emerald-600">
+                                    {tenders.filter(t => t.status === 'OPEN').length}
+                                </dd>
+                            </AnimatedCard>
+                        </StaggerItem>
+                        <StaggerItem>
+                            <AnimatedCard className="card bg-white overflow-hidden shadow-sm rounded-lg border border-slate-200 p-5">
+                                <dt className="text-sm font-medium text-slate-500 truncate">Under Evaluation</dt>
+                                <dd className="mt-1 text-3xl font-semibold text-amber-600">
+                                    {tenders.filter(t => t.status === 'EVALUATING').length}
+                                </dd>
+                            </AnimatedCard>
+                        </StaggerItem>
+                        <StaggerItem>
+                            <AnimatedCard className="card bg-white overflow-hidden shadow-sm rounded-lg border border-slate-200 p-5">
+                                <dt className="text-sm font-medium text-slate-500 truncate">Completed</dt>
+                                <dd className="mt-1 text-3xl font-semibold text-blue-600">
+                                    {tenders.filter(t => t.status === 'COMPLETED').length}
+                                </dd>
+                            </AnimatedCard>
+                        </StaggerItem>
+                    </StaggerContainer>
 
                     {/* Tenders List */}
                     <div className="bg-white shadow-sm ring-1 ring-slate-900/5 sm:rounded-xl overflow-hidden">
@@ -114,18 +129,20 @@ const ProcurementDashboard = () => {
                                 <p className="mt-2 text-sm font-medium text-slate-900">No tenders created yet</p>
                                 <p className="mt-1 text-sm text-slate-500">Get started by creating a new tender.</p>
                                 <div className="mt-6">
-                                    <Link to="/procurement/create-tender" className="btn-primary">
-                                        <svg className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                                        </svg>
-                                        Create Tender
+                                    <Link to="/procurement/create-tender">
+                                        <AnimatedButton className="btn-primary">
+                                            <svg className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                            </svg>
+                                            Create Tender
+                                        </AnimatedButton>
                                     </Link>
                                 </div>
                             </div>
                         ) : (
-                            <ul role="list" className="divide-y divide-slate-100">
+                            <StaggerContainer as="ul" className="divide-y divide-slate-100">
                                 {tenders.map((tender) => (
-                                    <li key={tender.id} className="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-slate-50 sm:px-6 transition-colors">
+                                    <StaggerLi key={tender.id} className="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-slate-50 sm:px-6 transition-colors">
                                         <div className="flex min-w-0 gap-x-4">
                                             <div className="min-w-0 flex-auto">
                                                 <p className="text-sm font-semibold leading-6 text-slate-900">
@@ -150,9 +167,9 @@ const ProcurementDashboard = () => {
                                                 <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
                                             </svg>
                                         </div>
-                                    </li>
+                                    </StaggerLi>
                                 ))}
-                            </ul>
+                            </StaggerContainer>
                         )}
                     </div>
                 </div>

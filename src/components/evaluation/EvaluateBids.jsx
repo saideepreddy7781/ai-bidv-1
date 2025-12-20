@@ -1,12 +1,15 @@
 // Simplified Bid Evaluation Component - Accept/Reject Only
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { getTenderById, getBidsByTender, acceptBid, rejectBid } from '../../services/firebaseService';
 import { generateRejectionPdfBlob, generateApprovalPdfBlob, downloadBlob } from '../../services/pdfService';
 import { generateEvaluationRecommendations } from '../../services/geminiService';
 import Navbar from '../layout/Navbar';
 import LoadingSpinner from '../shared/LoadingSpinner';
+import StaggerContainer, { StaggerItem } from '../animations/StaggerContainer';
+import AnimatedButton from '../animations/AnimatedButton';
 
 const EvaluateBids = () => {
     const { tenderId } = useParams();
@@ -186,7 +189,11 @@ const EvaluateBids = () => {
         <>
             <Navbar />
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-                <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center max-w-md w-full">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center max-w-md w-full"
+                >
                     <div className="mx-auto h-12 w-12 text-slate-400 mb-4 bg-slate-100 rounded-full flex items-center justify-center">
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -200,7 +207,7 @@ const EvaluateBids = () => {
                     >
                         Back to Dashboard
                     </button>
-                </div>
+                </motion.div>
             </div>
         </>
     );
@@ -224,7 +231,11 @@ const EvaluateBids = () => {
                     </div>
 
                     {error && (
-                        <div className="mb-6 rounded-md bg-red-50 p-4 border border-red-200">
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-6 rounded-md bg-red-50 p-4 border border-red-200"
+                        >
                             <div className="flex">
                                 <div className="flex-shrink-0">
                                     <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -235,7 +246,7 @@ const EvaluateBids = () => {
                                     <div className="text-sm text-red-700">{error}</div>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     )}
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -248,35 +259,36 @@ const EvaluateBids = () => {
                                         {bids.length}
                                     </span>
                                 </div>
-                                <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+                                <StaggerContainer className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
                                     {bids.map((bid) => (
-                                        <button
-                                            key={bid.id}
-                                            onClick={() => handleBidSelect(bid)}
-                                            className={`w-full text-left p-4 transition-all duration-200 hover:bg-slate-50 ${selectedBid?.id === bid.id
-                                                ? 'bg-blue-50/50 border-l-4 border-blue-600'
-                                                : 'border-l-4 border-transparent'
-                                                }`}
-                                        >
-                                            <div className="flex justify-between items-start mb-1">
-                                                <span className="font-semibold text-slate-900 text-sm truncate pr-2">
-                                                    {bid.companyName || 'Unknown Company'}
-                                                </span>
-                                            </div>
-                                            <div className="text-xs text-slate-500 mb-2">
-                                                {bid.vendorName} • {new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString()}
-                                            </div>
-                                            {bid.complianceCheck && (
-                                                <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium border ${bid.complianceCheck.passed
-                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                                    }`}>
-                                                    Compliance: {bid.complianceCheck.score}/100
-                                                </span>
-                                            )}
-                                        </button>
+                                        <StaggerItem key={bid.id}>
+                                            <button
+                                                onClick={() => handleBidSelect(bid)}
+                                                className={`w-full text-left p-4 transition-all duration-200 hover:bg-slate-50 ${selectedBid?.id === bid.id
+                                                    ? 'bg-blue-50/50 border-l-4 border-blue-600'
+                                                    : 'border-l-4 border-transparent'
+                                                    }`}
+                                            >
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className="font-semibold text-slate-900 text-sm truncate pr-2">
+                                                        {bid.companyName || 'Unknown Company'}
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-slate-500 mb-2">
+                                                    {bid.vendorName} • {new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString()}
+                                                </div>
+                                                {bid.complianceCheck && (
+                                                    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium border ${bid.complianceCheck.passed
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                        }`}>
+                                                        Compliance: {bid.complianceCheck.score}/100
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </StaggerItem>
                                     ))}
-                                </div>
+                                </StaggerContainer>
                             </div>
                         </div>
 
@@ -365,85 +377,104 @@ const EvaluateBids = () => {
                                             <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">
                                                 AI Decision Support by Groq
                                             </h3>
-                                            {!aiAnalysis && !analyzing && (
-                                                <button
-                                                    onClick={handleAnalyzeBid}
-                                                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                                                >
-                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                    </svg>
-                                                    Analyze Bid
-                                                </button>
-                                            )}
+                                            <AnimatePresence>
+                                                {!aiAnalysis && !analyzing && (
+                                                    <motion.button
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        exit={{ opacity: 0 }}
+                                                        onClick={handleAnalyzeBid}
+                                                        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                                                    >
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                        </svg>
+                                                        Analyze Bid
+                                                    </motion.button>
+                                                )}
+                                            </AnimatePresence>
                                         </div>
 
-                                        {analyzing && (
-                                            <div className="p-8 border border-dashed border-indigo-200 rounded-lg bg-indigo-50 flex flex-col items-center justify-center">
-                                                <LoadingSpinner size="md" color="text-indigo-600" />
-                                                <p className="mt-4 text-sm font-medium text-indigo-700">Analyzing proposal against criteria...</p>
-                                            </div>
-                                        )}
+                                        <AnimatePresence>
+                                            {analyzing && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="p-8 border border-dashed border-indigo-200 rounded-lg bg-indigo-50 flex flex-col items-center justify-center">
+                                                        <LoadingSpinner size="md" color="text-indigo-600" />
+                                                        <p className="mt-4 text-sm font-medium text-indigo-700">Analyzing proposal against criteria...</p>
+                                                    </div>
+                                                </motion.div>
+                                            )}
 
-                                        {aiAnalysis && (
-                                            <div className="bg-white rounded-lg border border-indigo-100 shadow-sm overflow-hidden">
-                                                <div className="bg-indigo-50/50 p-4 border-b border-indigo-100 flex justify-between items-center">
-                                                    <div>
-                                                        <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">AI Recommendation</p>
-                                                        <h4 className="text-lg font-bold text-slate-900">{aiAnalysis.overall_recommendation}</h4>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-xs font-medium text-slate-500">Confidence</p>
-                                                        <p className="text-lg font-bold text-slate-900">{Math.round((aiAnalysis.confidence || 0) * 100)}%</p>
-                                                    </div>
-                                                </div>
-                                                <div className="p-5">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                            {aiAnalysis && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.5, ease: "easeOut" }}
+                                                    className="bg-white rounded-lg border border-indigo-100 shadow-sm overflow-hidden"
+                                                >
+                                                    <div className="bg-indigo-50/50 p-4 border-b border-indigo-100 flex justify-between items-center">
                                                         <div>
-                                                            <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">Scoring Breakdown</h5>
-                                                            <div className="space-y-3">
-                                                                {Object.entries(aiAnalysis.scores || {}).map(([criterion, score]) => (
-                                                                    <div key={criterion}>
-                                                                        <div className="flex justify-between text-sm mb-1">
-                                                                            <span className="text-slate-700">{criterion}</span>
-                                                                            <span className="font-semibold text-slate-900">{score} pts</span>
+                                                            <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">AI Recommendation</p>
+                                                            <h4 className="text-lg font-bold text-slate-900">{aiAnalysis.overall_recommendation}</h4>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-xs font-medium text-slate-500">Confidence</p>
+                                                            <p className="text-lg font-bold text-slate-900">{Math.round((aiAnalysis.confidence || 0) * 100)}%</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-5">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                            <div>
+                                                                <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">Scoring Breakdown</h5>
+                                                                <div className="space-y-3">
+                                                                    {Object.entries(aiAnalysis.scores || {}).map(([criterion, score]) => (
+                                                                        <div key={criterion}>
+                                                                            <div className="flex justify-between text-sm mb-1">
+                                                                                <span className="text-slate-700">{criterion}</span>
+                                                                                <span className="font-semibold text-slate-900">{score} pts</span>
+                                                                            </div>
+                                                                            <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                                                                <div
+                                                                                    className="bg-indigo-600 h-1.5 rounded-full"
+                                                                                    style={{ width: `${(score / 35) * 100}%` }} // Approximate max
+                                                                                ></div>
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="w-full bg-slate-100 rounded-full h-1.5">
-                                                                            <div
-                                                                                className="bg-indigo-600 h-1.5 rounded-full"
-                                                                                style={{ width: `${(score / 35) * 100}%` }} // Approximate max
-                                                                            ></div>
-                                                                        </div>
+                                                                    ))}
+                                                                    <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+                                                                        <span className="font-bold text-slate-900">Total Score</span>
+                                                                        <span className="font-black text-indigo-600 text-lg">{aiAnalysis.totalScore}/100</span>
                                                                     </div>
-                                                                ))}
-                                                                <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
-                                                                    <span className="font-bold text-slate-900">Total Score</span>
-                                                                    <span className="font-black text-indigo-600 text-lg">{aiAnalysis.totalScore}/100</span>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <div>
-                                                            <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">Key Findings</h5>
-                                                            <ul className="space-y-2">
-                                                                {aiAnalysis.key_findings?.map((finding, idx) => (
-                                                                    <li key={idx} className="flex gap-2 text-sm text-slate-600">
-                                                                        <span className="text-indigo-500 mt-0.5">•</span>
-                                                                        {finding}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                            {/* Populate comments with AI summary if empty */}
-                                                            <button
-                                                                onClick={() => setComments(aiAnalysis.reasoning ? JSON.stringify(aiAnalysis.reasoning, null, 2) : "Based on AI Analysis...")}
-                                                                className="mt-4 text-xs font-medium text-indigo-600 hover:text-indigo-800 underline"
-                                                            >
-                                                                Use reasoning as comment
-                                                            </button>
+                                                            <div>
+                                                                <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">Key Findings</h5>
+                                                                <ul className="space-y-2">
+                                                                    {aiAnalysis.key_findings?.map((finding, idx) => (
+                                                                        <li key={idx} className="flex gap-2 text-sm text-slate-600">
+                                                                            <span className="text-indigo-500 mt-0.5">•</span>
+                                                                            {finding}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                                {/* Populate comments with AI summary if empty */}
+                                                                <button
+                                                                    onClick={() => setComments(aiAnalysis.reasoning ? JSON.stringify(aiAnalysis.reasoning, null, 2) : "Based on AI Analysis...")}
+                                                                    className="mt-4 text-xs font-medium text-indigo-600 hover:text-indigo-800 underline"
+                                                                >
+                                                                    Use reasoning as comment
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        )}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </section>
 
                                     {/* Compliance */}
@@ -519,20 +550,20 @@ const EvaluateBids = () => {
                                             </div>
 
                                             <div className="mt-6 flex items-center justify-end gap-3 pt-6 border-t border-slate-200">
-                                                <button
+                                                <AnimatedButton
                                                     onClick={handleReject}
                                                     disabled={processing || !comments.trim()}
                                                     className="inline-flex justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                                 >
                                                     {processing ? (processingStatus || 'Processing...') : 'Reject Bid'}
-                                                </button>
-                                                <button
+                                                </AnimatedButton>
+                                                <AnimatedButton
                                                     onClick={handleAccept}
                                                     disabled={processing || !comments.trim()}
                                                     className="inline-flex justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                                 >
                                                     {processing ? (processingStatus || 'Processing...') : 'Accept & Close Tender'}
-                                                </button>
+                                                </AnimatedButton>
                                             </div>
                                         </div>
                                     </section>

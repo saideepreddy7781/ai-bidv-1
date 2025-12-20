@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "firebase": "^12.6.0",
+    "framer-motion": "^12.23.26",
     "groq-sdk": "^0.37.0",
     "jspdf": "^3.0.4",
     "mongodb": "^7.0.0",
