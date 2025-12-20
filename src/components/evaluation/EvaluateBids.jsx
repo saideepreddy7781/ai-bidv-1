@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getTenderById, getBidsByTender, acceptBid, rejectBid } from '../../services/firebaseService';
 import { generateRejectionPdfBlob, generateApprovalPdfBlob, uploadPdf, downloadBlob } from '../../services/pdfService';
+import { generateEvaluationRecommendations } from '../../services/geminiService';
 import Navbar from '../layout/Navbar';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
@@ -17,8 +18,13 @@ const EvaluateBids = () => {
     const [selectedBid, setSelectedBid] = useState(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [processingStatus, setProcessingStatus] = useState('');
     const [error, setError] = useState('');
     const [comments, setComments] = useState('');
+
+    // AI Analysis State
+    const [analyzing, setAnalyzing] = useState(false);
+    const [aiAnalysis, setAiAnalysis] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -50,6 +56,32 @@ const EvaluateBids = () => {
         setSelectedBid(bid);
         setComments('');
         setError('');
+        setAiAnalysis(null); // Reset AI analysis for new bid
+    };
+
+    const handleAnalyzeBid = async () => {
+        if (!selectedBid) return;
+
+        setAnalyzing(true);
+        setError('');
+
+        try {
+            // Standard evaluation criteria
+            const criteria = [
+                { name: "Technical Capability", weight: 35, description: "Ability to deliver technical requirements" },
+                { name: "Financial Proposal", weight: 25, description: "Cost effectiveness and transparency" },
+                { name: "Experience & Track Record", weight: 20, description: "Past performance and relevant experience" },
+                { name: "Compliance", weight: 20, description: "Adherence to tender requirements" }
+            ];
+
+            const analysis = await generateEvaluationRecommendations(selectedBid, criteria);
+            setAiAnalysis(analysis);
+        } catch (err) {
+            console.error(err);
+            setError('Failed to analyze bid: ' + err.message);
+        } finally {
+            setAnalyzing(false);
+        }
     };
 
     const handleAccept = async () => {
@@ -60,6 +92,7 @@ const EvaluateBids = () => {
 
         setError('');
         setProcessing(true);
+        setProcessingStatus('Generating Certificate...');
 
         try {
             // 1. Generate Approval PDF
@@ -69,13 +102,14 @@ const EvaluateBids = () => {
             // 2. Upload to Storage
             let pdfUrl = null;
             try {
+                setProcessingStatus('Uploading to Secure Storage...');
                 pdfUrl = await uploadPdf(pdfBlob, 'bid-documents/approvals', filename);
             } catch (uploadError) {
                 console.error('Failed to upload PDF, continuing without it:', uploadError);
-                // Optional: Alert user but proceed? Or fail? Let's proceed but maybe warn.
             }
 
             // 3. Update DB
+            setProcessingStatus('Finalizing Record...');
             await acceptBid(
                 selectedBid.id,
                 tender.id,
@@ -96,6 +130,7 @@ const EvaluateBids = () => {
             setError('Failed to accept bid: ' + err.message);
         } finally {
             setProcessing(false);
+            setProcessingStatus('');
         }
     };
 
@@ -107,6 +142,7 @@ const EvaluateBids = () => {
 
         setError('');
         setProcessing(true);
+        setProcessingStatus('Generating Rejection Notice...');
 
         try {
             // 1. Generate Rejection PDF
@@ -116,12 +152,14 @@ const EvaluateBids = () => {
             // 2. Upload to Storage
             let pdfUrl = null;
             try {
+                setProcessingStatus('Uploading to Secure Storage...');
                 pdfUrl = await uploadPdf(pdfBlob, 'bid-documents/rejections', filename);
             } catch (uploadError) {
                 console.error('Failed to upload PDF, continuing without it:', uploadError);
             }
 
             // 3. Update DB
+            setProcessingStatus('Updating Bid Status...');
             await rejectBid(
                 selectedBid.id,
                 userProfile.uid,
@@ -141,6 +179,7 @@ const EvaluateBids = () => {
                 setBids(remainingBids);
                 setSelectedBid(remainingBids[0]);
                 setComments('');
+                setAiAnalysis(null);
                 alert('Bid rejected! Rejection PDF saved and downloaded. Moving to next bid...');
             } else {
                 alert('Bid rejected! Rejection PDF saved and downloaded. No more bids to evaluate.');
@@ -150,6 +189,7 @@ const EvaluateBids = () => {
             setError('Failed to reject bid: ' + err.message);
         } finally {
             setProcessing(false);
+            setProcessingStatus('');
         }
     };
 
@@ -317,13 +357,13 @@ const EvaluateBids = () => {
                                         </div>
                                     </section>
 
-                                    {/* AI Analysis */}
+                                    {/* AI Proposal Analysis */}
                                     {selectedBid?.aiAnalysis && (
                                         <section>
                                             <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4">
-                                                AI Analysis
+                                                Initial AI Scan
                                             </h3>
-                                            <div className="rounded-lg bg-blue-50 p-4 border border-blue-100">
+                                            <div className="rounded-lg bg-blue-50 p-4 border border-blue-100 mb-6">
                                                 <div className="flex">
                                                     <div className="flex-shrink-0">
                                                         <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -331,15 +371,100 @@ const EvaluateBids = () => {
                                                         </svg>
                                                     </div>
                                                     <div className="ml-3">
-                                                        <h3 className="text-sm font-medium text-blue-800">AI Insights</h3>
-                                                        <div className="mt-2 text-sm text-blue-700">
-                                                            <p>{selectedBid.aiAnalysis.summary}</p>
-                                                        </div>
+                                                        <h3 className="text-sm font-medium text-blue-800">Key Information Extracted</h3>
+                                                        <p className="mt-2 text-sm text-blue-700">{selectedBid.aiAnalysis.summary}</p>
                                                     </div>
                                                 </div>
                                             </div>
                                         </section>
                                     )}
+
+                                    {/* AI Decision Support */}
+                                    <section>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">
+                                                AI Decision Support by Groq
+                                            </h3>
+                                            {!aiAnalysis && !analyzing && (
+                                                <button
+                                                    onClick={handleAnalyzeBid}
+                                                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                                                >
+                                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                    </svg>
+                                                    Analyze Bid
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {analyzing && (
+                                            <div className="p-8 border border-dashed border-indigo-200 rounded-lg bg-indigo-50 flex flex-col items-center justify-center">
+                                                <LoadingSpinner size="md" color="text-indigo-600" />
+                                                <p className="mt-4 text-sm font-medium text-indigo-700">Analyzing proposal against criteria...</p>
+                                            </div>
+                                        )}
+
+                                        {aiAnalysis && (
+                                            <div className="bg-white rounded-lg border border-indigo-100 shadow-sm overflow-hidden">
+                                                <div className="bg-indigo-50/50 p-4 border-b border-indigo-100 flex justify-between items-center">
+                                                    <div>
+                                                        <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">AI Recommendation</p>
+                                                        <h4 className="text-lg font-bold text-slate-900">{aiAnalysis.overall_recommendation}</h4>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-xs font-medium text-slate-500">Confidence</p>
+                                                        <p className="text-lg font-bold text-slate-900">{Math.round((aiAnalysis.confidence || 0) * 100)}%</p>
+                                                    </div>
+                                                </div>
+                                                <div className="p-5">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                        <div>
+                                                            <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">Scoring Breakdown</h5>
+                                                            <div className="space-y-3">
+                                                                {Object.entries(aiAnalysis.scores || {}).map(([criterion, score]) => (
+                                                                    <div key={criterion}>
+                                                                        <div className="flex justify-between text-sm mb-1">
+                                                                            <span className="text-slate-700">{criterion}</span>
+                                                                            <span className="font-semibold text-slate-900">{score} pts</span>
+                                                                        </div>
+                                                                        <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                                                            <div
+                                                                                className="bg-indigo-600 h-1.5 rounded-full"
+                                                                                style={{ width: `${(score / 35) * 100}%` }} // Approximate max
+                                                                            ></div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
+                                                                    <span className="font-bold text-slate-900">Total Score</span>
+                                                                    <span className="font-black text-indigo-600 text-lg">{aiAnalysis.totalScore}/100</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">Key Findings</h5>
+                                                            <ul className="space-y-2">
+                                                                {aiAnalysis.key_findings?.map((finding, idx) => (
+                                                                    <li key={idx} className="flex gap-2 text-sm text-slate-600">
+                                                                        <span className="text-indigo-500 mt-0.5">•</span>
+                                                                        {finding}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                            {/* Populate comments with AI summary if empty */}
+                                                            <button
+                                                                onClick={() => setComments(aiAnalysis.reasoning ? JSON.stringify(aiAnalysis.reasoning, null, 2) : "Based on AI Analysis...")}
+                                                                className="mt-4 text-xs font-medium text-indigo-600 hover:text-indigo-800 underline"
+                                                            >
+                                                                Use reasoning as comment
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </section>
 
                                     {/* Compliance */}
                                     {selectedBid?.complianceCheck && (
@@ -419,14 +544,14 @@ const EvaluateBids = () => {
                                                     disabled={processing || !comments.trim()}
                                                     className="inline-flex justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                                 >
-                                                    {processing ? 'Processing...' : 'Reject Bid'}
+                                                    {processing ? (processingStatus || 'Processing...') : 'Reject Bid'}
                                                 </button>
                                                 <button
                                                     onClick={handleAccept}
                                                     disabled={processing || !comments.trim()}
                                                     className="inline-flex justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                                 >
-                                                    {processing ? 'Processing...' : 'Accept & Close Tender'}
+                                                    {processing ? (processingStatus || 'Processing...') : 'Accept & Close Tender'}
                                                 </button>
                                             </div>
                                         </div>

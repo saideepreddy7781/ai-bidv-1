@@ -4,8 +4,8 @@ import Groq from 'groq-sdk';
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const groq = new Groq({ apiKey: API_KEY, dangerouslyAllowBrowser: true });
 
-// Using llama-3.3-70b-versatile - free and powerful model
-const MODEL = "llama-3.3-70b-versatile";
+// Using llama-3.1-8b-instant - extremely fast and sufficient for this task
+const MODEL = "llama-3.1-8b-instant";
 
 /**
  * Analyze a bid document and extract key information
