@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getTenderById, getBidsByTender, acceptBid, rejectBid } from '../../services/firebaseService';
-import { generateRejectionPdfBlob, generateApprovalPdfBlob, uploadPdf, downloadBlob } from '../../services/pdfService';
+import { generateRejectionPdfBlob, generateApprovalPdfBlob, downloadBlob } from '../../services/pdfService';
 import { generateEvaluationRecommendations } from '../../services/geminiService';
 import Navbar from '../layout/Navbar';
 import LoadingSpinner from '../shared/LoadingSpinner';
@@ -92,34 +92,24 @@ const EvaluateBids = () => {
 
         setError('');
         setProcessing(true);
-        setProcessingStatus('Generating Certificate...');
+        setProcessingStatus('Finalizing Record...');
 
         try {
-            // 1. Generate Approval PDF
+            // 1. Generate Approval PDF (Local Download Only)
             const pdfBlob = generateApprovalPdfBlob(selectedBid);
             const filename = `approval_${selectedBid.id}.pdf`;
 
-            // 2. Upload to Storage
-            let pdfUrl = null;
-            try {
-                setProcessingStatus('Uploading to Secure Storage...');
-                pdfUrl = await uploadPdf(pdfBlob, 'bid-documents/approvals', filename);
-            } catch (uploadError) {
-                console.error('Failed to upload PDF, continuing without it:', uploadError);
-            }
-
-            // 3. Update DB
-            setProcessingStatus('Finalizing Record...');
+            // 2. Update DB (Skip upload)
             await acceptBid(
                 selectedBid.id,
                 tender.id,
                 userProfile.uid,
                 userProfile.displayName,
                 comments,
-                pdfUrl
+                null // No PDF URL stored
             );
 
-            // 4. Download locally for evaluator's reference
+            // 3. Download locally for evaluator's reference
             downloadBlob(pdfBlob, filename);
 
             alert('Bid accepted! Tender has been marked as COMPLETED.');
@@ -142,33 +132,23 @@ const EvaluateBids = () => {
 
         setError('');
         setProcessing(true);
-        setProcessingStatus('Generating Rejection Notice...');
+        setProcessingStatus('Updating Bid Status...');
 
         try {
-            // 1. Generate Rejection PDF
+            // 1. Generate Rejection PDF (Local Download Only)
             const pdfBlob = generateRejectionPdfBlob(selectedBid, comments, userProfile.displayName);
             const filename = `rejection_${selectedBid.id}.pdf`;
 
-            // 2. Upload to Storage
-            let pdfUrl = null;
-            try {
-                setProcessingStatus('Uploading to Secure Storage...');
-                pdfUrl = await uploadPdf(pdfBlob, 'bid-documents/rejections', filename);
-            } catch (uploadError) {
-                console.error('Failed to upload PDF, continuing without it:', uploadError);
-            }
-
-            // 3. Update DB
-            setProcessingStatus('Updating Bid Status...');
+            // 2. Update DB (Skip upload)
             await rejectBid(
                 selectedBid.id,
                 userProfile.uid,
                 userProfile.displayName,
                 comments,
-                pdfUrl
+                null // No PDF URL stored
             );
 
-            // 4. Download locally
+            // 3. Download locally
             downloadBlob(pdfBlob, filename);
 
             // Move to next bid or go back to dashboard
