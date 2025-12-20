@@ -395,7 +395,7 @@ export const updateEvaluation = async (evaluationId, updates) => {
  * Accept a bid - simplified evaluation
  * Updates bid status to APPROVED and closes the tender
  */
-export const acceptBid = async (bidId, tenderId, evaluatorId, evaluatorName, comments) => {
+export const acceptBid = async (bidId, tenderId, evaluatorId, evaluatorName, comments, pdfUrl = null) => {
     try {
         // Update bid status to APPROVED
         await updateDoc(doc(db, COLLECTIONS.BIDS, bidId), {
@@ -403,7 +403,8 @@ export const acceptBid = async (bidId, tenderId, evaluatorId, evaluatorName, com
             evaluatedAt: serverTimestamp(),
             evaluatorId: evaluatorId,
             evaluatorName: evaluatorName,
-            evaluationComments: comments
+            evaluationComments: comments,
+            approvalPdfUrl: pdfUrl
         });
 
         // Close the tender (mark as COMPLETED)
@@ -424,7 +425,7 @@ export const acceptBid = async (bidId, tenderId, evaluatorId, evaluatorName, com
  * Reject a bid - simplified evaluation
  * Updates bid status to REJECTED, tender remains OPEN
  */
-export const rejectBid = async (bidId, evaluatorId, evaluatorName, comments) => {
+export const rejectBid = async (bidId, evaluatorId, evaluatorName, comments, pdfUrl = null) => {
     try {
         // Update bid status to REJECTED
         await updateDoc(doc(db, COLLECTIONS.BIDS, bidId), {
@@ -433,7 +434,8 @@ export const rejectBid = async (bidId, evaluatorId, evaluatorName, comments) => 
             evaluatorId: evaluatorId,
             evaluatorName: evaluatorName,
             evaluationComments: comments,
-            rejectionReason: comments
+            rejectionReason: comments,
+            rejectionPdfUrl: pdfUrl
         });
 
         return { success: true };

@@ -1,88 +1,169 @@
 import { jsPDF } from 'jspdf';
-import { getBidById, getTenderById } from './firebaseService';
-
-const SAVE_PDF_API = '/api/save-pdf';
+import { uploadFile } from './firebaseService';
 
 /**
- * Generate a PDF report for an evaluation and save it to MongoDB
- * @param {Object} evaluation - The evaluation object
- * @param {Object} tender - Optional tender object (if not in evaluation)
- * @param {Object} bid - Optional bid object (if not in evaluation)
- * @returns {Promise<Object>} - Result of the operation
+ * Generate Approval PDF Blob
  */
-export const generateAndSavePDF = async (evaluation, tender = null, bid = null) => {
+export const generateApprovalPdfBlob = (bid) => {
+    const doc = new jsPDF();
+    // Professional Header
+    doc.setFillColor(37, 99, 235); // Blue-600
+    doc.rect(0, 0, 210, 40, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(26);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BID AWARD CERTIFICATE', 105, 25, { align: 'center' });
+
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+
+    // Certificate body
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('AI Bid Evaluation Platform', 105, 55, { align: 'center' });
+
+    // Border
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(20, 65, 170, 140);
+
+    // Content
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('This verifies that the bid submitted by:', 105, 85, { align: 'center' });
+
+    doc.setFontSize(22);
+    doc.setTextColor(30, 41, 59); // Slate-800
+    doc.text(bid.companyName || 'Unknown Company', 105, 105, { align: 'center' });
+
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.text('has been officially approved and awarded.', 105, 120, { align: 'center' });
+
+    const contentStart = 140;
+    const lineHeight = 12;
+
+    doc.setFontSize(11);
+    doc.text(`Vendor Name: ${bid.vendorName || 'N/A'}`, 105, contentStart, { align: 'center' });
+    doc.text(`Bid Reference ID: ${bid.id}`, 105, contentStart + lineHeight, { align: 'center' });
+    doc.text(`Submission Date: ${new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString()}`, 105, contentStart + lineHeight * 2, { align: 'center' });
+    doc.text(`Award Date: ${bid.evaluatedAt ? new Date(bid.evaluatedAt).toLocaleDateString() : new Date().toLocaleDateString()}`, 105, contentStart + lineHeight * 3, { align: 'center' });
+
+    // Seal
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(2);
+    doc.circle(105, 235, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(37, 99, 235);
+    doc.text('OFFICIAL', 105, 233, { align: 'center' });
+    doc.text('AWARD', 105, 238, { align: 'center' });
+
+    // Footer
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text('This is an electronically generated document. Valid without signature.', 105, 280, { align: 'center' });
+
+    return doc.output('blob');
+};
+
+/**
+ * Generate Rejection PDF Blob
+ */
+export const generateRejectionPdfBlob = (bid, rejectionReason, evaluatorName) => {
+    const doc = new jsPDF();
+    // Add red header
+    doc.setFillColor(234, 67, 53); // Google Red
+    doc.rect(0, 0, 210, 30, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BID REJECTION NOTICE', 105, 18, { align: 'center' });
+
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+
+    // Body
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('AI Bid Evaluation Platform', 105, 45, { align: 'center' });
+
+    // Border
+    doc.setLineWidth(0.5);
+    doc.rect(15, 55, 180, 120);
+
+    // Content
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Dear Vendor,', 20, 70);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+
+    const content = [
+        { label: 'Company Name:', value: bid.companyName || 'N/A' },
+        { label: 'Vendor:', value: bid.vendorName || 'N/A' },
+        { label: 'Bid ID:', value: bid.id.slice(0, 12) },
+        { label: 'Submission Date:', value: new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString() },
+        { label: 'Evaluation Date:', value: new Date().toLocaleDateString() },
+        { label: 'Evaluated By:', value: evaluatorName || 'N/A' },
+        { label: 'Status:', value: 'REJECTED ✗' }
+    ];
+
+    let yPos = 85;
+    content.forEach(item => {
+        doc.setFont('helvetica', 'bold');
+        doc.text(item.label, 25, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.text(item.value, 80, yPos);
+        yPos += 10;
+    });
+
+    // Rejection reason
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('Rejection Reason:', 20, yPos + 10);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    const splitReason = doc.splitTextToSize(rejectionReason || 'No reason provided', 160);
+    doc.text(splitReason, 25, yPos + 20);
+
+    // Footer
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.text('This is an electronically generated document', 105, 270, { align: 'center' });
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 277, { align: 'center' });
+
+    return doc.output('blob');
+};
+
+/**
+ * Upload PDF to Storage
+ */
+export const uploadPdf = async (blob, folder, filename) => {
     try {
-        // 1. Fetch details if missing
-        const tenderData = tender || evaluation.tender || await getTenderById(evaluation.tenderId);
-        const bidData = bid || evaluation.bid || await getBidById(evaluation.bidId);
-
-        // 2. Generate PDF
-        const doc = new jsPDF();
-
-        // Title
-        doc.setFontSize(22);
-        doc.setTextColor(40, 40, 40);
-        doc.text("Bid Evaluation Report", 20, 20);
-
-        // Meta info
-        doc.setFontSize(12);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
-        doc.text(`Tender: ${tenderData?.title || 'N/A'}`, 20, 40);
-        doc.text(`Bidder: ${bidData?.companyName || 'N/A'}`, 20, 48);
-
-        // Score
-        doc.setFontSize(16);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Total Score: ${evaluation.totalScore}/100`, 20, 65);
-
-        doc.setFontSize(14);
-        const recommendationColor = evaluation.recommendation === 'APPROVE' ? [0, 128, 0] : [200, 0, 0];
-        doc.setTextColor(...recommendationColor);
-        doc.text(`Recommendation: ${evaluation.recommendation}`, 20, 75);
-
-        // Content
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(12);
-        doc.text("Evaluation Comments:", 20, 90);
-
-        const splitText = doc.splitTextToSize(evaluation.comments || "No comments provided.", 170);
-        doc.text(splitText, 20, 100);
-
-        // Get Base64
-        const pdfBase64 = doc.output('datauristring');
-        // Remove prefix "data:application/pdf;base64," if present, usually output('datauristring') includes it.
-        // We might want just the base64 part for some DBs, but standard is keep it or just payload.
-        // Let's keep it complete for easy display.
-
-        // 3. Send to API
-        const response = await fetch(SAVE_PDF_API, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                pdfBase64,
-                tenderId: tenderData.id,
-                evaluatorId: evaluation.evaluatorId,
-                timestamp: new Date().toISOString(),
-                metadata: {
-                    tenderName: tenderData.title,
-                    vendorName: bidData.companyName,
-                    score: evaluation.totalScore
-                }
-            }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to save PDF: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        return { success: true, ...result };
-
+        const path = `${folder}/${filename}`;
+        const downloadUrl = await uploadFile(blob, path);
+        return downloadUrl;
     } catch (error) {
-        console.error("Error in generateAndSavePDF:", error);
-        return { success: false, error: error.message };
+        console.error('Error uploading PDF:', error);
+        throw error;
     }
+};
+
+/**
+ * Helper to download blob directly (for fallback/immediate feedback)
+ */
+export const downloadBlob = (blob, filename) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 };

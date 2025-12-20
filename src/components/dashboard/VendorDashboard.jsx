@@ -312,7 +312,13 @@ const VendorDashboard = () => {
                                                         Awarded
                                                     </span>
                                                     <button
-                                                        onClick={() => generateApprovalPDF(bid)}
+                                                        onClick={() => {
+                                                            if (bid.approvalPdfUrl) {
+                                                                window.open(bid.approvalPdfUrl, '_blank');
+                                                            } else {
+                                                                generateApprovalPDF(bid);
+                                                            }
+                                                        }}
                                                         className="text-xs font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
                                                     >
                                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
