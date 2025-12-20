@@ -51,7 +51,7 @@ const Navbar = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        {user && (
+                        {user ? (
                             <>
                                 <div className="hidden md:flex flex-col items-end mr-2">
                                     <span className="text-sm font-medium text-slate-900">
@@ -69,6 +69,21 @@ const Navbar = () => {
                                     Log out
                                 </button>
                             </>
+                        ) : (
+                            <div className="flex items-center gap-4">
+                                <Link
+                                    to="/login"
+                                    className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                                >
+                                    Log in
+                                </Link>
+                                <Link
+                                    to="/register"
+                                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                                >
+                                    Get Started
+                                </Link>
+                            </div>
                         )}
                     </div>
                 </div>
