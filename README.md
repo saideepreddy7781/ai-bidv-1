@@ -1,4 +1,4 @@
-# AI Bid Evaluation Platform 🤖
+# AI Bid Evaluation Platform 🤖 -V1.0
 
 A hackathon-ready AI-powered government bid evaluation platform built with React, Firebase, and Google Gemini API.
 
