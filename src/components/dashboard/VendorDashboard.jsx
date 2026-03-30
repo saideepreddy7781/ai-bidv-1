@@ -5,79 +5,12 @@ import { useAuth } from '../../context/AuthContext';
 import { getAllTenders, getBidsByVendor } from '../../services/firebaseService';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import Navbar from '../layout/Navbar';
-import jsPDF from 'jspdf';
+import { generateApprovalPdfBlob, generateRejectionPdfBlob, downloadBlob } from '../../services/pdfService';
 
 // Animation Components
 import AnimatedCard from '../animations/AnimatedCard';
 import StaggerContainer, { StaggerItem } from '../animations/StaggerContainer';
 import AnimatedButton from '../animations/AnimatedButton';
-
-// Function to generate approval PDF
-const generateApprovalPDF = (bid) => {
-    const doc = new jsPDF();
-
-    // Professional Header
-    doc.setFillColor(37, 99, 235); // Blue-600
-    doc.rect(0, 0, 210, 40, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(26);
-    doc.setFont('helvetica', 'bold');
-    doc.text('BID AWARD CERTIFICATE', 105, 25, { align: 'center' });
-
-    // Reset text color
-    doc.setTextColor(0, 0, 0);
-
-    // Certificate body
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text('AI Bid Evaluation Platform', 105, 55, { align: 'center' });
-
-    // Border
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(20, 65, 170, 140);
-
-    // Content
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('This verifies that the bid submitted by:', 105, 85, { align: 'center' });
-
-    doc.setFontSize(22);
-    doc.setTextColor(30, 41, 59); // Slate-800
-    doc.text(bid.companyName || 'Unknown Company', 105, 105, { align: 'center' });
-
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    doc.setFont('helvetica', 'normal');
-    doc.text('has been officially approved and awarded.', 105, 120, { align: 'center' });
-
-    const contentStart = 140;
-    const lineHeight = 12;
-
-    doc.setFontSize(11);
-    doc.text(`Vendor Name: ${bid.vendorName || 'N/A'}`, 105, contentStart, { align: 'center' });
-    doc.text(`Bid Reference ID: ${bid.id}`, 105, contentStart + lineHeight, { align: 'center' });
-    doc.text(`Submission Date: ${new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString()}`, 105, contentStart + lineHeight * 2, { align: 'center' });
-    doc.text(`Award Date: ${bid.evaluatedAt ? new Date(bid.evaluatedAt).toLocaleDateString() : new Date().toLocaleDateString()}`, 105, contentStart + lineHeight * 3, { align: 'center' });
-
-    // Seal/Stamp visual representation (simple circle)
-    doc.setDrawColor(37, 99, 235);
-    doc.setLineWidth(2);
-    doc.circle(105, 235, 20);
-    doc.setFontSize(10);
-    doc.setTextColor(37, 99, 235);
-    doc.text('OFFICIAL', 105, 233, { align: 'center' });
-    doc.text('AWARD', 105, 238, { align: 'center' });
-
-    // Footer
-    doc.setFontSize(9);
-    doc.setTextColor(150, 150, 150);
-    doc.text('This is an electronically generated document. Valid without signature.', 105, 280, { align: 'center' });
-
-    // Save
-    doc.save(`Award_Certificate_${bid.id.slice(0, 8)}.pdf`);
-};
 
 const VendorDashboard = () => {
     const { userProfile } = useAuth();
@@ -330,7 +263,8 @@ const VendorDashboard = () => {
                                                                 if (bid.approvalPdfUrl) {
                                                                     window.open(bid.approvalPdfUrl, '_blank');
                                                                 } else {
-                                                                    generateApprovalPDF(bid);
+                                                                    const blob = generateApprovalPdfBlob(bid);
+                                                                    downloadBlob(blob, `approval_${bid.id}.pdf`);
                                                                 }
                                                             }}
                                                             className="text-xs font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
@@ -339,6 +273,37 @@ const VendorDashboard = () => {
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                                                             </svg>
                                                             Download Certificate
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {bid.status === 'REJECTED' && (
+                                                    <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center">
+                                                        <span className="text-xs font-medium text-red-700 flex items-center gap-1">
+                                                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-10.293a1 1 0 00-1.414-1.414L10 8.586 7.707 6.293a1 1 0 00-1.414 1.414L8.586 10l-2.293 2.293a1 1 0 101.414 1.414L10 11.414l2.293 2.293a1 1 0 001.414-1.414L11.414 10l2.293-2.293z" clipRule="evenodd" />
+                                                            </svg>
+                                                            Not Selected
+                                                        </span>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (bid.rejectionPdfUrl) {
+                                                                    window.open(bid.rejectionPdfUrl, '_blank');
+                                                                } else {
+                                                                    const blob = generateRejectionPdfBlob(
+                                                                        bid,
+                                                                        bid.rejectionReason || bid.evaluationComments || 'Bid was not selected for award.',
+                                                                        bid.evaluatorName || 'Procurement Officer'
+                                                                    );
+                                                                    downloadBlob(blob, `rejection_${bid.id}.pdf`);
+                                                                }
+                                                            }}
+                                                            className="text-xs font-medium text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                                                        >
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                                                            </svg>
+                                                            Download Rejection Notice
                                                         </button>
                                                     </div>
                                                 )}

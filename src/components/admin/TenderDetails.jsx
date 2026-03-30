@@ -1,7 +1,8 @@
 // Tender Details Component
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getTenderById, getBidsByTender, acceptBid } from '../../services/firebaseService';
+import { getTenderById, getBidsByTender, acceptBid, rejectBid } from '../../services/firebaseService';
+import { generateApprovalPdfBlob, generateRejectionPdfBlob, uploadPdf } from '../../services/pdfService';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../layout/Navbar';
 import LoadingSpinner from '../shared/LoadingSpinner';
@@ -46,20 +47,59 @@ const TenderDetails = () => {
             return;
         }
 
-        setProcessingId(bid.id);
+        setProcessingId(`accept-${bid.id}`);
         try {
+            const pdfBlob = generateApprovalPdfBlob(bid);
+            const pdfFileName = `approval_${tender.id}_${bid.id}.pdf`;
+            const pdfUrl = await uploadPdf(pdfBlob, 'tender-decisions/approvals', pdfFileName);
+
             await acceptBid(
                 bid.id,
                 tender.id,
                 userProfile.uid,
                 userProfile.displayName || 'Procurement Officer',
-                'Bid accepted by Procurement Officer'
+                'Bid accepted by Procurement Officer',
+                pdfUrl
             );
             alert('Bid accepted successfully! The tender is now closed.');
             await fetchData(); // Refresh data
         } catch (err) {
             console.error(err);
             alert('Failed to accept bid: ' + err.message);
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleRejectBid = async (bid) => {
+        const reason = window.prompt(`Enter rejection reason for ${bid.companyName || bid.vendorName}:`);
+        if (!reason || !reason.trim()) {
+            return;
+        }
+
+        setProcessingId(`reject-${bid.id}`);
+        try {
+            const pdfBlob = generateRejectionPdfBlob(
+                bid,
+                reason,
+                userProfile.displayName || 'Procurement Officer'
+            );
+            const pdfFileName = `rejection_${tender.id}_${bid.id}.pdf`;
+            const pdfUrl = await uploadPdf(pdfBlob, 'tender-decisions/rejections', pdfFileName);
+
+            await rejectBid(
+                bid.id,
+                userProfile.uid,
+                userProfile.displayName || 'Procurement Officer',
+                reason,
+                pdfUrl
+            );
+
+            alert('Bid rejected successfully. Rejection notice PDF is now available for download.');
+            await fetchData();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to reject bid: ' + err.message);
         } finally {
             setProcessingId(null);
         }
@@ -273,14 +313,44 @@ const TenderDetails = () => {
                                                 )}
 
                                                 {/* Actions */}
-                                                {canManageTender && isTenderActive && bid.status !== 'REJECTED' && (
-                                                    <button
-                                                        onClick={() => handleAcceptBid(bid)}
-                                                        disabled={processingId === bid.id}
-                                                        className="w-full mt-2 inline-flex justify-center items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
-                                                    >
-                                                        {processingId === bid.id ? 'Processing...' : 'Accept Bid'}
-                                                    </button>
+                                                {canManageTender && isTenderActive && bid.status === 'SUBMITTED' && (
+                                                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                        <button
+                                                            onClick={() => handleAcceptBid(bid)}
+                                                            disabled={processingId === `accept-${bid.id}` || processingId === `reject-${bid.id}`}
+                                                            className="inline-flex justify-center items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
+                                                        >
+                                                            {processingId === `accept-${bid.id}` ? 'Accepting...' : 'Accept Bid'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleRejectBid(bid)}
+                                                            disabled={processingId === `accept-${bid.id}` || processingId === `reject-${bid.id}`}
+                                                            className="inline-flex justify-center items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                                                        >
+                                                            {processingId === `reject-${bid.id}` ? 'Rejecting...' : 'Reject Bid'}
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {(bid.approvalPdfUrl || bid.rejectionPdfUrl) && (
+                                                    <div className="mt-3 pt-2 border-t border-slate-100 flex flex-wrap gap-3">
+                                                        {bid.approvalPdfUrl && (
+                                                            <button
+                                                                onClick={() => window.open(bid.approvalPdfUrl, '_blank')}
+                                                                className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                                                            >
+                                                                Download Approval PDF
+                                                            </button>
+                                                        )}
+                                                        {bid.rejectionPdfUrl && (
+                                                            <button
+                                                                onClick={() => window.open(bid.rejectionPdfUrl, '_blank')}
+                                                                className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                                                            >
+                                                                Download Rejection PDF
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 )}
 
                                                 {bid.status === 'APPROVED' && (
