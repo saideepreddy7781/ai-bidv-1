@@ -34,7 +34,14 @@ export const AuthProvider = ({ children }) => {
                 // Fetch user profile from Firestore
                 try {
                     const profile = await getUserProfile(firebaseUser.uid);
-                    setUserProfile(profile);
+                    if (profile) {
+                        setUserProfile(profile);
+                        setError(null);
+                    } else {
+                        // Avoid indefinite loading states in protected routes
+                        setUserProfile(null);
+                        setError('User profile not found. Please register again or seed demo users.');
+                    }
                 } catch (err) {
                     console.error('Error fetching user profile:', err);
                     setError(err.message);
@@ -42,6 +49,7 @@ export const AuthProvider = ({ children }) => {
             } else {
                 setUser(null);
                 setUserProfile(null);
+                setError(null);
             }
             setLoading(false);
         });

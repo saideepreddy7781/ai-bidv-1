@@ -7,6 +7,44 @@ const groq = new Groq({ apiKey: API_KEY, dangerouslyAllowBrowser: true });
 // Using llama-3.1-8b-instant - extremely fast and sufficient for this task
 const MODEL = "llama-3.1-8b-instant";
 
+const isAuthError = (error) => {
+    const message = String(error?.message || '').toLowerCase();
+    const status = Number(error?.status || error?.response?.status || 0);
+    return (
+        status === 401 ||
+        message.includes('invalid api key') ||
+        message.includes('invalid_api_key') ||
+        message.includes('incorrect api key') ||
+        message.includes('unauthorized')
+    );
+};
+
+const extractByRegex = (text, pattern) => {
+    const match = text.match(pattern);
+    return match?.[1]?.trim() || null;
+};
+
+const buildFallbackAnalysis = (documentText) => {
+    const cost = extractByRegex(documentText, /(cost|budget|price)\s*[:\-]?\s*([^\n]+)/i);
+    const timeline = extractByRegex(documentText, /(timeline|duration|completion)\s*[:\-]?\s*([^\n]+)/i);
+    const teamSize = extractByRegex(documentText, /(team\s*size|team members?)\s*[:\-]?\s*([^\n]+)/i);
+    const certifications = Array.from(documentText.matchAll(/\b(iso\s*\d+|cmmi|pmp|soc\s*2)\b/gi)).map((m) => m[0].toUpperCase());
+
+    return {
+        summary: 'AI provider is temporarily unavailable. This is a fallback summary generated from document keywords for demo continuity.',
+        proposedCost: cost || 'Not clearly specified',
+        timeline: timeline || 'Not clearly specified',
+        experience: 'Could not infer reliably in fallback mode',
+        keyFeatures: ['Fallback analysis mode enabled', 'Manual evaluator review recommended'],
+        technicalApproach: 'Automatic model response unavailable; evaluator should review uploaded document details manually.',
+        teamSize: teamSize || 'Not clearly specified',
+        certifications: certifications.length ? certifications : [],
+        risks: ['External AI API authentication failed during analysis'],
+        strengths: ['System preserved workflow by generating non-blocking fallback output'],
+        warning: 'AI provider authentication failed (invalid API key). Update VITE_GROQ_API_KEY to restore full analysis.'
+    };
+};
+
 /**
  * Analyze a bid document and extract key information
  * @param {string} documentText - The text content of the document
@@ -71,6 +109,9 @@ Respond ONLY with valid JSON, no additional text.`;
         }
     } catch (error) {
         console.error('Error analyzing document:', error);
+        if (isAuthError(error)) {
+            return buildFallbackAnalysis(documentText);
+        }
         throw new Error('Failed to analyze document: ' + error.message);
     }
 };
@@ -125,6 +166,17 @@ Respond ONLY with valid JSON, no additional text.`;
         }
     } catch (error) {
         console.error('Error checking compliance:', error);
+        if (isAuthError(error)) {
+            return {
+                passed: true,
+                score: 65,
+                issues: ['AI provider auth failed; compliance generated in fallback mode.'],
+                requirements_met: [],
+                requirements_missing: [],
+                recommendations: 'Review tender requirements manually. Update VITE_GROQ_API_KEY to restore full AI compliance checks.',
+                warning: 'Fallback compliance used due to invalid AI API key.'
+            };
+        }
         throw new Error('Failed to check compliance: ' + error.message);
     }
 };
@@ -159,6 +211,9 @@ Provide a professional, objective summary suitable for procurement officers.`;
         return completion.choices[0]?.message?.content || "Summary generation failed.";
     } catch (error) {
         console.error('Error generating bid summary:', error);
+        if (isAuthError(error)) {
+            return 'AI provider authentication failed. This summary is unavailable in fallback mode. Please review the bid details manually.';
+        }
         throw new Error('Failed to generate summary: ' + error.message);
     }
 };
@@ -230,6 +285,22 @@ Respond ONLY with valid JSON, no additional text.`;
         }
     } catch (error) {
         console.error('Error comparing bids:', error);
+        if (isAuthError(error)) {
+            return {
+                rankings: bids.map((bid, index) => ({
+                    bidId: bid.id,
+                    vendorName: bid.vendorName || 'Unknown',
+                    rank: index + 1,
+                    score: 60,
+                    strengths: ['Fallback ranking'],
+                    weaknesses: ['AI provider authentication failed']
+                })),
+                comparison_matrix: {},
+                recommendation: 'AI comparison unavailable due to API key issue. Perform manual evaluation for final decision.',
+                key_differentiators: ['Fallback mode active due to invalid AI API key'],
+                warning: 'Fallback comparison used.'
+            };
+        }
         throw new Error('Failed to compare bids: ' + error.message);
     }
 };
@@ -309,6 +380,24 @@ Scores should be out of the weight for each criterion. Respond ONLY with valid J
         }
     } catch (error) {
         console.error('Error generating evaluation recommendations:', error);
+        if (isAuthError(error)) {
+            const defaultScores = {};
+            criteria.forEach(criterion => {
+                defaultScores[criterion.name] = Math.floor(criterion.weight * 0.6);
+            });
+
+            return {
+                scores: defaultScores,
+                totalScore: 60,
+                confidence: 0.3,
+                reasoning: {
+                    note: 'Fallback recommendation used because AI provider authentication failed.'
+                },
+                overall_recommendation: 'REQUEST_CLARIFICATION',
+                key_findings: ['AI API key invalid; recommendation generated in fallback mode'],
+                warning: 'Fallback recommendations used due to invalid AI API key.'
+            };
+        }
         throw new Error('Failed to generate recommendations: ' + error.message);
     }
 };

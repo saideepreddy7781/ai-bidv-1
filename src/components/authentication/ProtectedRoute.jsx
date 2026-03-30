@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-    const { user, userProfile, loading } = useAuth();
+    const { user, userProfile, loading, error } = useAuth();
 
     // Show loading while checking authentication
     if (loading) {
@@ -22,6 +22,26 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
     // Show loading while userProfile is being fetched
     if (!userProfile) {
+        if (error) {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+                    <div className="max-w-lg w-full bg-white shadow-lg rounded-xl p-8 border border-slate-200 text-center">
+                        <h2 className="text-xl font-bold text-slate-900 mb-2">Profile Access Issue</h2>
+                        <p className="text-slate-600 mb-4">{error}</p>
+                        <p className="text-sm text-slate-500 mb-6">
+                            This usually happens when Firestore rules block reading users/{'{uid}'} or the profile document does not exist.
+                        </p>
+                        <a
+                            href="/login"
+                            className="inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+                        >
+                            Back to Login
+                        </a>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <LoadingSpinner />
