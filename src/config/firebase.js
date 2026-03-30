@@ -4,6 +4,17 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
+const requiredFirebaseVars = [
+    'VITE_FIREBASE_API_KEY',
+    'VITE_FIREBASE_AUTH_DOMAIN',
+    'VITE_FIREBASE_PROJECT_ID',
+    'VITE_FIREBASE_STORAGE_BUCKET',
+    'VITE_FIREBASE_MESSAGING_SENDER_ID',
+    'VITE_FIREBASE_APP_ID'
+];
+
+const missingFirebaseVars = requiredFirebaseVars.filter((key) => !import.meta.env[key]);
+
 // Firebase configuration from environment variables
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,13 +25,29 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app = null;
+let firebaseInitError = null;
+
+if (missingFirebaseVars.length > 0) {
+    firebaseInitError = new Error(
+        `Missing Firebase environment variables: ${missingFirebaseVars.join(', ')}`
+    );
+    console.error(firebaseInitError.message);
+} else {
+    try {
+        app = initializeApp(firebaseConfig);
+    } catch (error) {
+        firebaseInitError = error;
+        console.error('Failed to initialize Firebase:', error);
+    }
+}
+
+export { firebaseInitError };
 
 // Initialize Firebase services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-export const googleProvider = new GoogleAuthProvider();
+export const auth = app ? getAuth(app) : null;
+export const db = app ? getFirestore(app) : null;
+export const storage = app ? getStorage(app) : null;
+export const googleProvider = app ? new GoogleAuthProvider() : null;
 
 export default app;

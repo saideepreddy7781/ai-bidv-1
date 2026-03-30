@@ -2,7 +2,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth, firebaseInitError } from '../config/firebase';
 import {
     registerUser as registerService,
     loginUser as loginService,
@@ -28,6 +28,15 @@ export const AuthProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        if (!auth) {
+            setLoading(false);
+            setError(
+                firebaseInitError?.message ||
+                'Firebase is not configured. Please set VITE_FIREBASE_* environment variables.'
+            );
+            return () => {};
+        }
+
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 setUser(firebaseUser);
