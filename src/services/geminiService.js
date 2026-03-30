@@ -186,6 +186,48 @@ const buildFallbackAnalysis = (documentText) => {
     };
 };
 
+const normalizeStringArray = (value) => {
+    if (Array.isArray(value)) {
+        return value.map((item) => String(item).trim()).filter(Boolean);
+    }
+
+    if (typeof value === 'string') {
+        return value
+            .split(/\n|,|;/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+    }
+
+    return [];
+};
+
+const normalizeDocumentAnalysis = (rawAnalysis, documentText) => {
+    let candidate = rawAnalysis && typeof rawAnalysis === 'object' ? rawAnalysis : {};
+
+    if (typeof candidate.summary === 'string') {
+        const nested = parseJsonFromText(candidate.summary);
+        if (nested && typeof nested === 'object') {
+            candidate = { ...nested, ...candidate };
+        }
+    }
+
+    const fallback = buildFallbackAnalysis(documentText);
+
+    return {
+        summary: String(candidate.summary || fallback.summary),
+        proposedCost: String(candidate.proposedCost || fallback.proposedCost),
+        timeline: String(candidate.timeline || fallback.timeline),
+        experience: String(candidate.experience || fallback.experience),
+        keyFeatures: normalizeStringArray(candidate.keyFeatures),
+        technicalApproach: String(candidate.technicalApproach || fallback.technicalApproach),
+        teamSize: String(candidate.teamSize || fallback.teamSize),
+        certifications: normalizeStringArray(candidate.certifications),
+        risks: normalizeStringArray(candidate.risks),
+        strengths: normalizeStringArray(candidate.strengths),
+        warning: candidate.warning ? String(candidate.warning) : undefined
+    };
+};
+
 /**
  * Analyze a bid document and extract key information
  * @param {string} documentText - The text content of the document
@@ -224,30 +266,30 @@ Respond ONLY with valid JSON, no additional text.`;
         const completion = await groq.chat.completions.create({
             messages: [{ role: "user", content: prompt }],
             model: MODEL,
-            temperature: 0.7,
+            temperature: 0.3,
             max_tokens: 2500,
         });
 
         const text = completion.choices[0]?.message?.content || "";
 
-        // Parse JSON response
-        try {
-            const parsed = JSON.parse(text);
+        const parsed = parseJsonFromText(text);
+        if (parsed && typeof parsed === 'object') {
+            const normalized = normalizeDocumentAnalysis(parsed, documentText);
 
             // Ensure summary is comprehensive
-            if (parsed.summary && parsed.summary.length < 100) {
+            if (normalized.summary && normalized.summary.length < 100) {
                 // If summary is too short, enhance it
-                parsed.summary = `${parsed.summary} The vendor brings ${parsed.experience || 'significant'} experience, proposes a ${parsed.timeline || 'defined'} timeline, and offers ${parsed.keyFeatures?.length || 'multiple'} key features including ${parsed.technicalApproach || 'robust technical solutions'}.`;
+                normalized.summary = `${normalized.summary} The vendor brings ${normalized.experience || 'significant'} experience, proposes a ${normalized.timeline || 'defined'} timeline, and offers ${normalized.keyFeatures?.length || 'multiple'} key features including ${normalized.technicalApproach || 'robust technical solutions'}.`;
             }
 
-            return parsed;
-        } catch (parseError) {
-            console.error('Failed to parse Groq response as JSON:', parseError);
-            return {
-                summary: text,
-                error: 'Failed to parse structured data'
-            };
+            return normalized;
         }
+
+        console.error('Failed to parse Groq response as JSON.');
+        return {
+            ...normalizeDocumentAnalysis({ summary: text }, documentText),
+            error: 'Failed to parse structured data'
+        };
     } catch (error) {
         console.error('Error analyzing document:', error);
         if (isAuthError(error)) {

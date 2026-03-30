@@ -7,6 +7,35 @@ import { analyzeDocument, checkCompliance } from '../../services/geminiService';
 import Navbar from '../layout/Navbar';
 import LoadingSpinner from '../shared/LoadingSpinner';
 
+const parseDisplayAnalysis = (analysis) => {
+    if (!analysis || typeof analysis !== 'object') {
+        return null;
+    }
+
+    if (typeof analysis.summary !== 'string') {
+        return analysis;
+    }
+
+    const raw = analysis.summary.trim();
+    if (!raw.startsWith('{') && !raw.startsWith('```')) {
+        return analysis;
+    }
+
+    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    const candidate = fenced?.[1] || raw;
+
+    try {
+        const parsed = JSON.parse(candidate);
+        if (parsed && typeof parsed === 'object') {
+            return { ...parsed, ...analysis };
+        }
+    } catch {
+        // Keep original analysis when parsing fails.
+    }
+
+    return analysis;
+};
+
 const SubmitBid = () => {
     const { tenderId } = useParams();
     const { userProfile } = useAuth();
@@ -30,6 +59,8 @@ const SubmitBid = () => {
 
     const [aiAnalysis, setAiAnalysis] = useState(null);
     const [complianceCheck, setComplianceCheck] = useState(null);
+
+    const displayAnalysis = parseDisplayAnalysis(aiAnalysis);
 
     useEffect(() => {
         const fetchTender = async () => {
@@ -427,16 +458,56 @@ CERTIFICATIONS: ${bidData.certifications}
                                         </div>
                                     )}
 
-                                    {aiAnalysis && (
+                                    {displayAnalysis && (
                                         <div className="card bg-white border border-slate-200 shadow-sm">
                                             <h4 className="font-bold text-slate-900 mb-3 border-b border-slate-100 pb-2">AI Summary</h4>
-                                            <p className="text-sm text-slate-600 mb-4">{aiAnalysis.summary}</p>
+                                            <p className="text-sm text-slate-600 mb-4">{displayAnalysis.summary}</p>
 
-                                            {aiAnalysis.strengths && aiAnalysis.strengths.length > 0 && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                                <div className="rounded-md bg-slate-50 border border-slate-200 p-3">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Proposed Cost</p>
+                                                    <p className="text-sm font-semibold text-slate-900">{displayAnalysis.proposedCost || 'Not specified'}</p>
+                                                </div>
+                                                <div className="rounded-md bg-slate-50 border border-slate-200 p-3">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Timeline</p>
+                                                    <p className="text-sm font-semibold text-slate-900">{displayAnalysis.timeline || 'Not specified'}</p>
+                                                </div>
+                                                <div className="rounded-md bg-slate-50 border border-slate-200 p-3">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Experience</p>
+                                                    <p className="text-sm font-semibold text-slate-900">{displayAnalysis.experience || 'Not specified'}</p>
+                                                </div>
+                                                <div className="rounded-md bg-slate-50 border border-slate-200 p-3">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Team Size</p>
+                                                    <p className="text-sm font-semibold text-slate-900">{displayAnalysis.teamSize || 'Not specified'}</p>
+                                                </div>
+                                            </div>
+
+                                            {displayAnalysis.technicalApproach && (
+                                                <div className="mb-4">
+                                                    <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">Technical Approach</h5>
+                                                    <p className="text-sm text-slate-700">{displayAnalysis.technicalApproach}</p>
+                                                </div>
+                                            )}
+
+                                            {displayAnalysis.keyFeatures && displayAnalysis.keyFeatures.length > 0 && (
+                                                <div className="mb-4">
+                                                    <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">Key Features</h5>
+                                                    <ul className="space-y-1">
+                                                        {displayAnalysis.keyFeatures.map((feature, idx) => (
+                                                            <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
+                                                                <span className="text-indigo-500">•</span>
+                                                                {feature}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {displayAnalysis.strengths && displayAnalysis.strengths.length > 0 && (
                                                 <div>
                                                     <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">Identified Strengths</h5>
                                                     <ul className="space-y-1">
-                                                        {aiAnalysis.strengths.map((strength, idx) => (
+                                                        {displayAnalysis.strengths.map((strength, idx) => (
                                                             <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
                                                                 <svg className="h-5 w-5 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -445,6 +516,26 @@ CERTIFICATIONS: ${bidData.certifications}
                                                             </li>
                                                         ))}
                                                     </ul>
+                                                </div>
+                                            )}
+
+                                            {displayAnalysis.risks && displayAnalysis.risks.length > 0 && (
+                                                <div className="mt-4">
+                                                    <h5 className="text-xs font-bold text-slate-500 uppercase mb-2">Potential Risks</h5>
+                                                    <ul className="space-y-1">
+                                                        {displayAnalysis.risks.map((risk, idx) => (
+                                                            <li key={idx} className="flex items-start gap-2 text-sm text-amber-700">
+                                                                <span className="text-amber-500">!</span>
+                                                                {risk}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {displayAnalysis.warning && (
+                                                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                                                    {displayAnalysis.warning}
                                                 </div>
                                             )}
                                         </div>
