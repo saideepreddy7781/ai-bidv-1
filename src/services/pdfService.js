@@ -1,11 +1,27 @@
 import { jsPDF } from 'jspdf';
 import { uploadFile } from './firebaseService';
 
+const isPlaceholderValue = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return !normalized || ['not specified', 'n/a', 'unknown company', 'unknown'].includes(normalized);
+};
+
+const getPreferredBidIdentity = (bid) => {
+    const company = isPlaceholderValue(bid?.companyName) ? '' : String(bid.companyName).trim();
+    const vendor = isPlaceholderValue(bid?.vendorName) ? '' : String(bid.vendorName).trim();
+
+    return {
+        companyOrVendor: company || vendor || 'Vendor',
+        vendor: vendor || company || null
+    };
+};
+
 /**
  * Generate Approval PDF Blob
  */
 export const generateApprovalPdfBlob = (bid) => {
     const doc = new jsPDF();
+    const identity = getPreferredBidIdentity(bid);
     // Professional Header
     doc.setFillColor(37, 99, 235); // Blue-600
     doc.rect(0, 0, 210, 40, 'F');
@@ -35,7 +51,7 @@ export const generateApprovalPdfBlob = (bid) => {
 
     doc.setFontSize(22);
     doc.setTextColor(30, 41, 59); // Slate-800
-    doc.text(bid.companyName || 'Unknown Company', 105, 105, { align: 'center' });
+    doc.text(identity.companyOrVendor, 105, 105, { align: 'center' });
 
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
@@ -46,7 +62,7 @@ export const generateApprovalPdfBlob = (bid) => {
     const lineHeight = 12;
 
     doc.setFontSize(11);
-    doc.text(`Vendor Name: ${bid.vendorName || 'N/A'}`, 105, contentStart, { align: 'center' });
+    doc.text(`Vendor Name: ${identity.vendor || 'Vendor'}`, 105, contentStart, { align: 'center' });
     doc.text(`Bid Reference ID: ${bid.id}`, 105, contentStart + lineHeight, { align: 'center' });
     doc.text(`Submission Date: ${new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString()}`, 105, contentStart + lineHeight * 2, { align: 'center' });
     doc.text(`Award Date: ${bid.evaluatedAt ? new Date(bid.evaluatedAt).toLocaleDateString() : new Date().toLocaleDateString()}`, 105, contentStart + lineHeight * 3, { align: 'center' });
@@ -73,6 +89,7 @@ export const generateApprovalPdfBlob = (bid) => {
  */
 export const generateRejectionPdfBlob = (bid, rejectionReason, evaluatorName) => {
     const doc = new jsPDF();
+    const identity = getPreferredBidIdentity(bid);
     // Add red header
     doc.setFillColor(234, 67, 53); // Google Red
     doc.rect(0, 0, 210, 30, 'F');
@@ -103,14 +120,14 @@ export const generateRejectionPdfBlob = (bid, rejectionReason, evaluatorName) =>
     doc.setFontSize(12);
 
     const content = [
-        { label: 'Company Name:', value: bid.companyName || 'N/A' },
-        { label: 'Vendor:', value: bid.vendorName || 'N/A' },
+        { label: 'Company Name:', value: identity.companyOrVendor },
+        { label: 'Vendor:', value: identity.vendor },
         { label: 'Bid ID:', value: bid.id.slice(0, 12) },
         { label: 'Submission Date:', value: new Date(bid.submittedAt?.seconds * 1000).toLocaleDateString() },
         { label: 'Evaluation Date:', value: new Date().toLocaleDateString() },
-        { label: 'Evaluated By:', value: evaluatorName || 'N/A' },
+        { label: 'Evaluated By:', value: isPlaceholderValue(evaluatorName) ? null : evaluatorName },
         { label: 'Status:', value: 'REJECTED ✗' }
-    ];
+    ].filter((item) => !isPlaceholderValue(item.value));
 
     let yPos = 85;
     content.forEach(item => {

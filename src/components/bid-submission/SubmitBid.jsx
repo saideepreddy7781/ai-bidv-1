@@ -168,7 +168,7 @@ CERTIFICATIONS: ${bidData.certifications}
                 tenderId: tenderId,
                 vendorId: userProfile.uid,
                 vendorName: userProfile.displayName,
-                companyName: userProfile.companyName || 'Not Specified',
+                companyName: userProfile.companyName || '',
                 bidData: bidData,
                 aiAnalysis: aiAnalysis,
                 complianceCheck: complianceCheck,
