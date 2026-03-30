@@ -4,8 +4,149 @@ import Groq from 'groq-sdk';
 const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const groq = new Groq({ apiKey: API_KEY, dangerouslyAllowBrowser: true });
 
-// Using llama-3.1-8b-instant - extremely fast and sufficient for this task
-const MODEL = "llama-3.1-8b-instant";
+// Prefer a higher quality default model for procurement-grade analysis.
+const MODEL = import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile';
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const safeNumber = (value, fallback = 0) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+};
+
+const parseJsonFromText = (text) => {
+    const raw = String(text || '').trim();
+    if (!raw) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(raw);
+    } catch {
+        // Continue with extraction from markdown/code-fenced output.
+    }
+
+    const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (fenced?.[1]) {
+        try {
+            return JSON.parse(fenced[1]);
+        } catch {
+            // Continue with brace extraction.
+        }
+    }
+
+    const firstBrace = raw.indexOf('{');
+    const lastBrace = raw.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+        const candidate = raw.slice(firstBrace, lastBrace + 1);
+        try {
+            return JSON.parse(candidate);
+        } catch {
+            return null;
+        }
+    }
+
+    return null;
+};
+
+const normalizeReasoning = (reasoning, criteriaMap) => {
+    if (!reasoning || typeof reasoning !== 'object') {
+        return {};
+    }
+
+    return Object.entries(reasoning).reduce((acc, [key, value]) => {
+        const criterionName = criteriaMap.get(key.toLowerCase()) || key;
+        acc[criterionName] = String(value || '').trim();
+        return acc;
+    }, {});
+};
+
+const buildHeuristicEvaluation = (bidData, criteria) => {
+    const proposalText = String(bidData?.bidData?.proposalText || '').toLowerCase();
+    const has = (pattern) => pattern.test(proposalText);
+
+    const signalScore = [
+        has(/architecture|integration|scalable|security|automation|cloud|api/) ? 1 : 0,
+        has(/timeline|milestone|delivery|weeks|months/) ? 1 : 0,
+        has(/cost|budget|pricing|total|usd|inr|eur/) ? 1 : 0,
+        has(/experience|years|projects|case study|track record/) ? 1 : 0,
+        has(/iso|compliance|sla|governance|audit/) ? 1 : 0
+    ].reduce((sum, n) => sum + n, 0);
+
+    const baseRatio = clamp(0.45 + signalScore * 0.1, 0.45, 0.9);
+    const scores = {};
+    criteria.forEach((criterion) => {
+        const maxWeight = safeNumber(criterion.weight, 0);
+        scores[criterion.name] = Math.round(maxWeight * baseRatio);
+    });
+
+    const totalWeight = criteria.reduce((sum, c) => sum + safeNumber(c.weight, 0), 0) || 100;
+    const weightedScore = criteria.reduce((sum, c) => sum + safeNumber(scores[c.name], 0), 0);
+    const totalScore = Math.round((weightedScore / totalWeight) * 100);
+
+    let overall = 'REQUEST_CLARIFICATION';
+    if (totalScore >= 80) overall = 'APPROVE';
+    else if (totalScore <= 55) overall = 'REJECT';
+
+    return {
+        scores,
+        totalScore,
+        confidence: 0.55,
+        reasoning: {
+            note: 'Heuristic fallback generated because AI output was unavailable or unstructured.'
+        },
+        overall_recommendation: overall,
+        key_findings: [
+            'Proposal was scored using keyword-and-coverage heuristics.',
+            'Manual evaluator validation is still required before final decision.'
+        ],
+        criteriaWeights: criteria.reduce((acc, c) => {
+            acc[c.name] = safeNumber(c.weight, 0);
+            return acc;
+        }, {})
+    };
+};
+
+const normalizeEvaluationOutput = (rawOutput, criteria) => {
+    const criteriaMap = new Map(criteria.map((c) => [String(c.name).toLowerCase(), c.name]));
+    const criteriaWeights = criteria.reduce((acc, c) => {
+        acc[c.name] = safeNumber(c.weight, 0);
+        return acc;
+    }, {});
+
+    const normalizedScores = criteria.reduce((acc, c) => {
+        const weight = safeNumber(c.weight, 0);
+        const rawScore = rawOutput?.scores?.[c.name] ?? rawOutput?.scores?.[String(c.name).toLowerCase()];
+        acc[c.name] = Math.round(clamp(safeNumber(rawScore, weight * 0.6), 0, weight));
+        return acc;
+    }, {});
+
+    const totalWeight = criteria.reduce((sum, c) => sum + safeNumber(c.weight, 0), 0) || 100;
+    const weightedScore = criteria.reduce((sum, c) => sum + safeNumber(normalizedScores[c.name], 0), 0);
+    const normalizedTotalScore = Math.round((weightedScore / totalWeight) * 100);
+
+    const recommendationRaw = String(rawOutput?.overall_recommendation || '').toUpperCase().trim();
+    let overallRecommendation = recommendationRaw;
+    if (!['APPROVE', 'REJECT', 'REQUEST_CLARIFICATION'].includes(overallRecommendation)) {
+        if (normalizedTotalScore >= 80) overallRecommendation = 'APPROVE';
+        else if (normalizedTotalScore <= 55) overallRecommendation = 'REJECT';
+        else overallRecommendation = 'REQUEST_CLARIFICATION';
+    }
+
+    const keyFindings = Array.isArray(rawOutput?.key_findings)
+        ? rawOutput.key_findings.slice(0, 8).map((item) => String(item))
+        : [];
+
+    return {
+        scores: normalizedScores,
+        totalScore: normalizedTotalScore,
+        confidence: clamp(safeNumber(rawOutput?.confidence, 0.65), 0, 1),
+        reasoning: normalizeReasoning(rawOutput?.reasoning, criteriaMap),
+        overall_recommendation: overallRecommendation,
+        key_findings: keyFindings,
+        criteriaWeights
+    };
+};
 
 const isAuthError = (error) => {
     const message = String(error?.message || '').toLowerCase();
@@ -324,13 +465,32 @@ export const extractTextFromDocument = async (documentUrl) => {
  */
 export const generateEvaluationRecommendations = async (bidData, criteria) => {
     try {
-        const prompt = `You are an AI evaluator for government bids. Provide scoring recommendations based on the criteria.
+                const bidContext = {
+                        companyName: bidData?.companyName || bidData?.vendorName || 'Unknown Vendor',
+                        vendorName: bidData?.vendorName || 'Unknown Vendor',
+                        proposalText: String(bidData?.bidData?.proposalText || '').slice(0, 8000),
+                        proposedCost: bidData?.bidData?.proposedCost || null,
+                        timeline: bidData?.bidData?.timeline || null,
+                        experience: bidData?.bidData?.experience || null,
+                        teamSize: bidData?.bidData?.teamSize || null,
+                        keyFeatures: bidData?.bidData?.keyFeatures || [],
+                        technicalApproach: bidData?.bidData?.technicalApproach || null,
+                        complianceCheck: bidData?.complianceCheck || null
+                };
+
+                const prompt = `You are a senior procurement evaluator. Score this bid against weighted criteria using evidence from the proposal.
+
+Rules:
+- Scores per criterion must be integers and cannot exceed that criterion weight.
+- Be strict and evidence-based, avoid generic praise.
+- If evidence is missing, reduce score and mention the gap.
+- Return only JSON.
 
 Evaluation Criteria (with weights):
 ${JSON.stringify(criteria, null, 2)}
 
 Bid to Evaluate:
-${JSON.stringify(bidData, null, 2)}
+${JSON.stringify(bidContext, null, 2)}
 
 Please provide a JSON response with scoring for each criterion:
 {
@@ -350,50 +510,35 @@ Please provide a JSON response with scoring for each criterion:
   "key_findings": ["Important findings that influenced the evaluation"]
 }
 
-Scores should be out of the weight for each criterion. Respond ONLY with valid JSON.`;
+Respond ONLY with valid JSON.`;
 
         const completion = await groq.chat.completions.create({
             messages: [{ role: "user", content: prompt }],
             model: MODEL,
-            temperature: 0.5,
+            temperature: 0.25,
             max_tokens: 2000,
+            response_format: { type: 'json_object' },
         });
 
         const text = completion.choices[0]?.message?.content || "";
-
-        try {
-            return JSON.parse(text);
-        } catch (parseError) {
-            console.error('Failed to parse evaluation recommendations:', parseError);
-            // Return default recommendations
-            const defaultScores = {};
-            criteria.forEach(criterion => {
-                defaultScores[criterion.name] = Math.floor(criterion.weight * 0.7); // Default 70%
-            });
-
-            return {
-                scores: defaultScores,
-                totalScore: 70,
-                confidence: 0.5,
-                error: 'Failed to parse structured evaluation data'
-            };
+        const parsed = parseJsonFromText(text);
+        if (parsed) {
+            return normalizeEvaluationOutput(parsed, criteria);
         }
+
+        console.error('Failed to parse evaluation recommendations as JSON.');
+        const heuristic = buildHeuristicEvaluation(bidData, criteria);
+        return {
+            ...heuristic,
+            error: 'Failed to parse structured evaluation data'
+        };
     } catch (error) {
         console.error('Error generating evaluation recommendations:', error);
         if (isAuthError(error)) {
-            const defaultScores = {};
-            criteria.forEach(criterion => {
-                defaultScores[criterion.name] = Math.floor(criterion.weight * 0.6);
-            });
-
+            const heuristic = buildHeuristicEvaluation(bidData, criteria);
             return {
-                scores: defaultScores,
-                totalScore: 60,
-                confidence: 0.3,
-                reasoning: {
-                    note: 'Fallback recommendation used because AI provider authentication failed.'
-                },
-                overall_recommendation: 'REQUEST_CLARIFICATION',
+                ...heuristic,
+                confidence: 0.35,
                 key_findings: ['AI API key invalid; recommendation generated in fallback mode'],
                 warning: 'Fallback recommendations used due to invalid AI API key.'
             };

@@ -11,6 +11,13 @@ import LoadingSpinner from '../shared/LoadingSpinner';
 import StaggerContainer, { StaggerItem } from '../animations/StaggerContainer';
 import AnimatedButton from '../animations/AnimatedButton';
 
+const EVALUATION_CRITERIA = [
+    { name: 'Technical Capability', weight: 35, description: 'Ability to deliver technical requirements' },
+    { name: 'Financial Proposal', weight: 25, description: 'Cost effectiveness and transparency' },
+    { name: 'Experience & Track Record', weight: 20, description: 'Past performance and relevant experience' },
+    { name: 'Compliance', weight: 20, description: 'Adherence to tender requirements' }
+];
+
 const EvaluateBids = () => {
     const { tenderId } = useParams();
     const { userProfile } = useAuth();
@@ -69,15 +76,7 @@ const EvaluateBids = () => {
         setError('');
 
         try {
-            // Standard evaluation criteria
-            const criteria = [
-                { name: "Technical Capability", weight: 35, description: "Ability to deliver technical requirements" },
-                { name: "Financial Proposal", weight: 25, description: "Cost effectiveness and transparency" },
-                { name: "Experience & Track Record", weight: 20, description: "Past performance and relevant experience" },
-                { name: "Compliance", weight: 20, description: "Adherence to tender requirements" }
-            ];
-
-            const analysis = await generateEvaluationRecommendations(selectedBid, criteria);
+            const analysis = await generateEvaluationRecommendations(selectedBid, EVALUATION_CRITERIA);
             setAiAnalysis(analysis);
         } catch (err) {
             console.error(err);
@@ -432,20 +431,27 @@ const EvaluateBids = () => {
                                                             <div>
                                                                 <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">Scoring Breakdown</h5>
                                                                 <div className="space-y-3">
-                                                                    {Object.entries(aiAnalysis.scores || {}).map(([criterion, score]) => (
-                                                                        <div key={criterion}>
-                                                                            <div className="flex justify-between text-sm mb-1">
-                                                                                <span className="text-slate-700">{criterion}</span>
-                                                                                <span className="font-semibold text-slate-900">{score} pts</span>
+                                                                    {Object.entries(aiAnalysis.scores || {}).map(([criterion, score]) => {
+                                                                        const maxWeight = aiAnalysis.criteriaWeights?.[criterion] ||
+                                                                            EVALUATION_CRITERIA.find((c) => c.name === criterion)?.weight ||
+                                                                            100;
+                                                                        const widthPercent = Math.max(0, Math.min(100, (Number(score || 0) / maxWeight) * 100));
+
+                                                                        return (
+                                                                            <div key={criterion}>
+                                                                                <div className="flex justify-between text-sm mb-1">
+                                                                                    <span className="text-slate-700">{criterion}</span>
+                                                                                    <span className="font-semibold text-slate-900">{score}/{maxWeight} pts</span>
+                                                                                </div>
+                                                                                <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                                                                    <div
+                                                                                        className="bg-indigo-600 h-1.5 rounded-full"
+                                                                                        style={{ width: `${widthPercent}%` }}
+                                                                                    ></div>
+                                                                                </div>
                                                                             </div>
-                                                                            <div className="w-full bg-slate-100 rounded-full h-1.5">
-                                                                                <div
-                                                                                    className="bg-indigo-600 h-1.5 rounded-full"
-                                                                                    style={{ width: `${(score / 35) * 100}%` }} // Approximate max
-                                                                                ></div>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
+                                                                        );
+                                                                    })}
                                                                     <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
                                                                         <span className="font-bold text-slate-900">Total Score</span>
                                                                         <span className="font-black text-indigo-600 text-lg">{aiAnalysis.totalScore}/100</span>
@@ -462,9 +468,25 @@ const EvaluateBids = () => {
                                                                         </li>
                                                                     ))}
                                                                 </ul>
+                                                                {aiAnalysis.warning && (
+                                                                    <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded p-2">
+                                                                        {aiAnalysis.warning}
+                                                                    </p>
+                                                                )}
                                                                 {/* Populate comments with AI summary if empty */}
                                                                 <button
-                                                                    onClick={() => setComments(aiAnalysis.reasoning ? JSON.stringify(aiAnalysis.reasoning, null, 2) : "Based on AI Analysis...")}
+                                                                    onClick={() => {
+                                                                        if (!aiAnalysis.reasoning || Object.keys(aiAnalysis.reasoning).length === 0) {
+                                                                            setComments('Based on AI analysis, this proposal was reviewed across technical capability, financial value, experience, and compliance criteria.');
+                                                                            return;
+                                                                        }
+
+                                                                        const lines = Object.entries(aiAnalysis.reasoning)
+                                                                            .map(([criterion, reason]) => `- ${criterion}: ${reason}`)
+                                                                            .join('\n');
+
+                                                                        setComments(`AI reasoning summary:\n${lines}`);
+                                                                    }}
                                                                     className="mt-4 text-xs font-medium text-indigo-600 hover:text-indigo-800 underline"
                                                                 >
                                                                     Use reasoning as comment
